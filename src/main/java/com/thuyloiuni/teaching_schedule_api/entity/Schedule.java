@@ -47,5 +47,16 @@ public class Schedule {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
+    private ScheduleStatus status;
+
+    @Lob
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch= FetchType.LAZY)
+    private Set<Attendance> attendances;
+
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch= FetchType.LAZY)
+    private Set<AbsenceRequest> absenceRequests;
 
 }
