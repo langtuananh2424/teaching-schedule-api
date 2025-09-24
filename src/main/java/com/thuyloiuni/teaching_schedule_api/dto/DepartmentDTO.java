@@ -1,4 +1,4 @@
-package com.dto;
+package com.thuyloiuni.teaching_schedule_api.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
