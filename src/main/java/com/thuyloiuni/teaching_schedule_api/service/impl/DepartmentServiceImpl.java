@@ -1,20 +1,19 @@
 package com.thuyloiuni.teaching_schedule_api.service.impl;
 
-import com.thuyloiuni.teaching_schedule_api.dto.DepartmentDTO;
-import com.thuyloiuni.teaching_schedule_api.entity.Department;
-import com.thuyloiuni.teaching_schedule_api.repository.DepartmentRepository;
-import com.thuyloiuni.teaching_schedule_api.service.DepartmentService;
-import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.until.Optional;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.thuyloiuni.teaching_schedule_api.dto.DepartmentDTO;
+import com.thuyloiuni.teaching_schedule_api.entity.Department;
+import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
+import com.thuyloiuni.teaching_schedule_api.repository.DepartmentRepository;
+import com.thuyloiuni.teaching_schedule_api.service.DepartmentService;
 
 @Service
 
