@@ -2,8 +2,6 @@ package com.thuyloiuni.teaching_schedule_api.entity;
 
 import java.util.Set;
 
-import org.hibernate.sql.ast.tree.update.Assignment;
-
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 
 import jakarta.persistence.CascadeType;

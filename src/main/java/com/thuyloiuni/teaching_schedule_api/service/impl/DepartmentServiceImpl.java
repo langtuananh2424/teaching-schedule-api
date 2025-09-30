@@ -30,7 +30,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional
     public DepartmentDTO createDepartment(DepartmentDTO departmentDTO) {
-        if (departmentRepository.findByDepartName(departmentDTO.getDepartmentName()).isPresent()) {
+        if (departmentRepository.findByDepartmentName(departmentDTO.getDepartmentName()).isPresent()) {
             throw new IllegalArgumentException("Department with name " + departmentDTO.getDepartmentName() + " already exists.");
         }
         Department department = modelMapper.map(departmentDTO, Department.class);
@@ -60,7 +60,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id " + id));
 
         if (!existingDepartment.getDepartmentName().equals(departmentDTO.getDepartmentName()) &&
-                departmentRepository.findByDepartName(departmentDTO.getDepartmentName()).filter(d -> !d.getDepartmentId().equals(id)).isPresent()) {
+                departmentRepository.findByDepartmentName(departmentDTO.getDepartmentName()).filter(d -> !d.getDepartmentId().equals(id)).isPresent()) {
             throw new IllegalArgumentException("Department with name " + departmentDTO.getDepartmentName() + " already exists.");
         }
 
@@ -81,7 +81,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public Optional<DepartmentDTO> getDepartmentByName(String name) {
-        return departmentRepository.findByDepartName(name)
+        return departmentRepository.findByDepartmentName(name)
                 .map(department -> modelMapper.map(department, DepartmentDTO.class));
     }
 }

@@ -99,7 +99,7 @@ public class LecturerServiceImpl implements LecturerService {
     public List<LecturerDTO> getLecturersByDepartmentId(Integer departmentId) {
         departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + departmentId));
-        return lecturerRepository.findByDepartment_DepartId(departmentId).stream()
+        return lecturerRepository.findByDepartment_DepartmentId(departmentId).stream()
                 .map(this::mapToLecturerDTO)
                 .collect(Collectors.toList());
     }
@@ -127,14 +127,14 @@ public class LecturerServiceImpl implements LecturerService {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        Department department = departmentRepository.findById(lecturerRequestDTO.getDepartmentId())
+        Department departmentId = departmentRepository.findById(lecturerRequestDTO.getDepartmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + lecturerRequestDTO.getDepartmentId()));
 
         existingLecturer.setLecturerCode(lecturerRequestDTO.getLecturerCode());
         existingLecturer.setFullName(lecturerRequestDTO.getFullName());
         existingLecturer.setEmail(lecturerRequestDTO.getEmail());
         existingLecturer.setRole(lecturerRequestDTO.getRole());
-        existingLecturer.setDepartment(department);
+        existingLecturer.setDepartment(departmentId);
 
         Lecturer updatedLecturer = lecturerRepository.save(existingLecturer);
         return mapToLecturerDTO(updatedLecturer);

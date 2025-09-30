@@ -12,7 +12,7 @@ import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 @Repository
 
 public interface MakeupSessionRepository extends JpaRepository<MakeupSession, Integer> {
-    Optional<MakeupSession> findByOriginalAbsentSession_SessionId(Integer absentSessionId);
+    Optional<MakeupSession> findByMakeupSessionId(Integer makeupSessionId);;
 
     List<MakeupSession> findByApprover_LecturerId(Integer approverId);
 

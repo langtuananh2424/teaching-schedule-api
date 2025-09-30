@@ -2,8 +2,6 @@ package com.thuyloiuni.teaching_schedule_api.entity;
 
 import java.util.Set;
 
-import org.hibernate.sql.ast.tree.update.Assignment;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,4 +43,7 @@ public class Subject {
 
     @OneToMany(mappedBy = "subject", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<Assignment> assignments;
+
+    @Column(name = "credits", nullable= false)
+    private Integer credits;
 }

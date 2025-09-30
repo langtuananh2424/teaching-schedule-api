@@ -16,7 +16,7 @@ public interface LecturerRepository extends JpaRepository<Lecturer, Integer> {
 
     Optional<Lecturer> findByEmail(String email);
 
-    List<Lecturer> findByDepartment_DepartId(Integer departId);
+    List<Lecturer> findByDepartment_DepartmentId(Integer departmentId);
     List<Lecturer> findByRole(RoleType role);
 
     

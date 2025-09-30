@@ -14,7 +14,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Integer>
 
     List<Assignment> findBySubject_SubjectId(Integer subjectId);
 
-    List<Assignment> findByClass_ClassId(Integer classId);
+    List<Assignment> findByStudentClass_ClassId(Integer classId);
 
     List<Assignment> findByLecturer_LecturerIdAndSubject_SubjectId(Integer lecturerId, Integer subjectId);
 }

@@ -13,7 +13,7 @@ import com.thuyloiuni.teaching_schedule_api.entity.Subject;
 public interface SubjectRepository extends JpaRepository<Subject, Integer> {
     Optional<Subject> findBySubjectCode(String subjectCode);
 
-    List<Subject> findByDepartment_DepartId(Integer departId);
+    List<Subject> findByDepartment_DepartmentId(Integer departmentId);
 
     List<Subject> findByCredits(Integer credits);
 }
