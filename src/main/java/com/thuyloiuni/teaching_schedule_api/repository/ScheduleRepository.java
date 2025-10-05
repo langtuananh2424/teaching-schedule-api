@@ -24,14 +24,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByStatus(ScheduleStatus status);
 
-    // @Query("SELECT s FROM Schedule s WHERE s.assignment.lecturer.lecturerId = :lecturerId " +
-    //        "AND s.sessionDate = :date " +
-    //        "AND s.startPeriod = :startPeriod")
-    // Optional<Schedule> findByLecturerAndDateAndStartPeriod(
-    //         @Param("lecturerId") Integer lecturerId,
-    //         @Param("date") LocalDate date,
-    //         @Param("startPeriod") Integer startPeriod
-    // );
-
     List<Schedule> findByAssignment_StudentClass_ClassIdAndSessionDate(Integer classId, LocalDate sessionDate);
 }

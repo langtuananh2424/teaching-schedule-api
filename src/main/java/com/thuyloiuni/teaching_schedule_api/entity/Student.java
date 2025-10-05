@@ -39,7 +39,7 @@ public class Student {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id", referencedColumnName= "class_id", nullable = false)
-    private StudentClass classId;
+    private StudentClass studentClass;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Attendance> attendance;
