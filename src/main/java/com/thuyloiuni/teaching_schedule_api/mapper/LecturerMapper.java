@@ -1,42 +1,38 @@
 package com.thuyloiuni.teaching_schedule_api.mapper;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
-import org.mapstruct.factory.Mappers;
-
+import com.thuyloiuni.teaching_schedule_api.dto.CreateLecturerRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.LecturerDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.Department;
 import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@Mapper(componentModel="spring")
+import java.util.List;
+
+@Mapper(componentModel = "spring") // Đảm bảo Spring có thể inject
 public interface LecturerMapper {
-    LecturerMapper INSTANCE = Mappers.getMapper(LecturerMapper.class);
 
-    @Mapping(source= "lecturerId", target= "id")
-    @Mapping(source = "lecturerCode", target = "lecturerCode")
-    @Mapping(source = "department.departmentId", target = "departmentId")
-    @Mapping(source = "department.departmentName", target = "departmentName")
-    @Mapping(source = "role", target = "role", qualifiedByName = "roleToString")
-    LecturerDTO lecturerToLecturerDTO(Lecturer lecturer);
+    /**
+     * Chuyển đổi từ Lecturer (Entity) sang LecturerDTO (dữ liệu trả về cho client).
+     */
+    @Mapping(source = "lecturerId", target = "id")
+    @Mapping(source = "department.id", target = "departmentId") // Lấy ID từ đối tượng Department
+    @Mapping(source = "department.departmentName", target = "departmentName") // Lấy tên từ đối tượng Department
+    LecturerDTO toDto(Lecturer lecturer);
 
-    @Mapping(source = "departmentId", target = "department.departmentId")
-    @Mapping(target= "lecturerId", source= "id")
-    // Không map departmentName từ DTO về Entity vì nó chỉ để hiển thị
-    // Không map password từ DTO về Entity
-    @Mapping(target = "role", ignore= true)
-    Lecturer lecturerDTOToLecturer(LecturerDTO lecturerDTO);
+    /**
+     * Chuyển đổi một danh sách Lecturer (Entity) sang danh sách LecturerDTO.
+     */
+    List<LecturerDTO> toDtoList(List<Lecturer> lecturers);
 
-    // Helper method to convert Enum to String
-    @Named("roleToString")
-    default String roleToString(Enum<?> role) {
-        return role == null ? null : role.name();
-    }
-
-    default Lecturer updateDepartmentFromDTO(Lecturer lecturer, LecturerDTO lecturerDTO, Department department) {
-        if (lecturerDTO.getDepartmentId() != null && department != null) {
-            lecturer.setDepartment(department);
-        }
-        return lecturer;
-    }
+    /**
+     * Chuyển đổi từ CreateLecturerRequestDTO (dữ liệu đầu vào) sang Lecturer (Entity).
+     * Bỏ qua các trường phức tạp sẽ được xử lý thủ công trong service.
+     */
+    @Mapping(target = "password", ignore = true) // Mật khẩu sẽ được mã hóa và set trong service
+    @Mapping(target = "department", ignore = true) // Department sẽ được tìm và set trong service
+    @Mapping(target = "lecturerId", ignore = true) // ID sẽ do database tự tạo
+    @Mapping(target = "assignments", ignore = true) // Bỏ qua các mối quan hệ khác
+    Lecturer fromCreateDtoToEntity(CreateLecturerRequestDTO createDto);
 }

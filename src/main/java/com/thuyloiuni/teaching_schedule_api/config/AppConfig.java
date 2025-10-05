@@ -22,18 +22,4 @@ public class AppConfig {
         return modelMapper;
     }
 
-    // @Bean
-    // public ModelMapper modelMapper() {
-    //     ModelMapper modelMapper = new ModelMapper();
-
-    //     // Cấu hình mapping từ Lecturer -> LecturerDTO
-    //     TypeMap<Lecturer, LecturerDTO> lecturerToDtoMap = modelMapper.createTypeMap(Lecturer.class, LecturerDTO.class);
-        
-    //     // Thêm mapping cụ thể từ lecturerId -> id
-    //     lecturerToDtoMap.addMapping(Lecturer::getLecturerId, LecturerDTO::setId);
-    //     lecturerToDtoMap.addMapping(Lecturer::getLecturerCode, LecturerDTO::setLecturerCode);
-
-    //     return modelMapper;
-    // }
-
 }

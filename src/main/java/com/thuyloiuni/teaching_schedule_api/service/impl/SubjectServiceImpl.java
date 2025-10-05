@@ -3,33 +3,32 @@ package com.thuyloiuni.teaching_schedule_api.service.impl;
 import com.thuyloiuni.teaching_schedule_api.dto.SubjectDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.Subject;
 import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
+import com.thuyloiuni.teaching_schedule_api.mapper.SubjectMapper;
 import com.thuyloiuni.teaching_schedule_api.repository.SubjectRepository;
 import com.thuyloiuni.teaching_schedule_api.service.SubjectService;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
-    private final ModelMapper modelMapper;
+    private final SubjectMapper subjectMapper;
 
-    public SubjectServiceImpl(SubjectRepository subjectRepository, ModelMapper modelMapper) {
+    // Cập nhật constructor để inject SubjectMapper
+    public SubjectServiceImpl(SubjectRepository subjectRepository, SubjectMapper subjectMapper) {
         this.subjectRepository = subjectRepository;
-        this.modelMapper = modelMapper;
+        this.subjectMapper = subjectMapper;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SubjectDTO> getAllSubjects() {
         List<Subject> subjects = subjectRepository.findAll();
-        return subjects.stream()
-                .map(subject -> modelMapper.map(subject, SubjectDTO.class))
-                .collect(Collectors.toList());
+        // Sử dụng phương thức toDtoList của mapper
+        return subjectMapper.toDtoList(subjects);
     }
 
     @Override
@@ -37,20 +36,23 @@ public class SubjectServiceImpl implements SubjectService {
     public SubjectDTO getSubjectById(int id) {
         Subject subject = subjectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy môn học với ID: " + id));
-        return modelMapper.map(subject, SubjectDTO.class);
+        // Sử dụng mapper để chuyển đổi
+        return subjectMapper.toDto(subject);
     }
 
     @Override
     @Transactional
     public SubjectDTO createSubject(SubjectDTO subjectDTO) {
-        // Kiểm tra xem mã môn học đã tồn tại chưa
         if (subjectRepository.existsBySubjectCode(subjectDTO.getSubjectCode())) {
             throw new IllegalArgumentException("Mã môn học '" + subjectDTO.getSubjectCode() + "' đã tồn tại.");
         }
 
-        Subject subject = modelMapper.map(subjectDTO, Subject.class);
+        // Chuyển DTO thành Entity bằng mapper
+        Subject subject = subjectMapper.toEntity(subjectDTO);
         Subject savedSubject = subjectRepository.save(subject);
-        return modelMapper.map(savedSubject, SubjectDTO.class);
+
+        // Chuyển Entity đã lưu thành DTO để trả về
+        return subjectMapper.toDto(savedSubject);
     }
 
     @Override
@@ -65,7 +67,7 @@ public class SubjectServiceImpl implements SubjectService {
         existingSubject.setCreditHours(subjectDTO.getCreditHours());
 
         Subject updatedSubject = subjectRepository.save(existingSubject);
-        return modelMapper.map(updatedSubject, SubjectDTO.class);
+        return subjectMapper.toDto(updatedSubject);
     }
 
     @Override
