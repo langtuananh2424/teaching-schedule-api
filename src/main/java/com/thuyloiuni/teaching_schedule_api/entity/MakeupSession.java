@@ -34,8 +34,8 @@ public class MakeupSession {
     private Integer makeupSessionId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "absence_request_id", nullable = false)
-    private AbsenceRequest absenceRequest;
+    @JoinColumn(name = "absent_session_id", nullable = false)
+    private Schedule absentRequest;
 
     @Column(name = "makeup_date", nullable = false)
     private LocalDateTime makeupDate;

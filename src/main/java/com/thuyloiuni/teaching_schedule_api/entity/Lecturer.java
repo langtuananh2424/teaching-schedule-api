@@ -35,7 +35,7 @@ public class Lecturer {
     @Column(name = "lecturer_id")
     private Integer lecturerId;
 
-    @Column(name = "lecture_code", unique = true, nullable = false, length = 20)
+    @Column(name = "lecturer_code", unique = true, nullable = false, length = 20)
     private String lecturerCode;
 
     @Column(name = "full_name", nullable = false, length = 100)

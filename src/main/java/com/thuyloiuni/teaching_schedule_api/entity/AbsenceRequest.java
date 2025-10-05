@@ -57,7 +57,4 @@ public class AbsenceRequest {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approver_id")
     private Lecturer approver;
-
-    @OneToOne(mappedBy= "absenceRequest", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private MakeupSession makeupSession;
 }

@@ -18,6 +18,4 @@ public interface LecturerRepository extends JpaRepository<Lecturer, Integer> {
 
     List<Lecturer> findByDepartment_DepartmentId(Integer departmentId);
     List<Lecturer> findByRole(RoleType role);
-
-    
 }

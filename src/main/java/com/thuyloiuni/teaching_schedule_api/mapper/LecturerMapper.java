@@ -13,10 +13,11 @@ import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
 public interface LecturerMapper {
     LecturerMapper INSTANCE = Mappers.getMapper(LecturerMapper.class);
 
+    @Mapping(source= "lecturerId", target= "id")
+    @Mapping(source = "lecturerCode", target = "lecturerCode")
     @Mapping(source = "department.departmentId", target = "departmentId")
     @Mapping(source = "department.departmentName", target = "departmentName")
     @Mapping(source = "role", target = "role", qualifiedByName = "roleToString")
-    @Mapping(target= "id", source= "lecturerId")
     LecturerDTO lecturerToLecturerDTO(Lecturer lecturer);
 
     @Mapping(source = "departmentId", target = "department.departmentId")

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.thuyloiuni.teaching_schedule_api.dto.CreateLecturerRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.LecturerDTO;
@@ -27,7 +28,7 @@ public class LecturerServiceImpl implements LecturerService {
     private final LecturerRepository lecturerRepository;
     private final DepartmentRepository departmentRepository;
     private final ModelMapper modelMapper; // Được inject từ Spring context
-    // private final PasswordEncoder passwordEncoder; // Bỏ comment nếu dùng
+    private final PasswordEncoder passwordEncoder;
 
     // Helper method để map từ Lecturer Entity sang LecturerDTO
     // Bạn đã có phương thức này trong code trước, giữ lại hoặc cải tiến nếu cần
@@ -36,10 +37,9 @@ public class LecturerServiceImpl implements LecturerService {
             return null;
         }
         LecturerDTO dto = modelMapper.map(lecturer, LecturerDTO.class);
+        dto.setId(lecturer.getLecturerId());
+        dto.setLecturerCode(lecturer.getLecturerCode());
         if (lecturer.getDepartment() != null) {
-            // ModelMapper có thể đã map lecturer.department.departmentId sang dto.departmentId
-            // nếu tên trường trong DTO khớp (ví dụ: departmentId) hoặc có cấu hình.
-            // Nếu không, bạn cần set thủ công như cũ hoặc cấu hình ModelMapper.
             dto.setDepartmentId(lecturer.getDepartment().getDepartmentId());
             dto.setDepartmentName(lecturer.getDepartment().getDepartmentName());
         }
@@ -71,12 +71,11 @@ public class LecturerServiceImpl implements LecturerService {
         Lecturer lecturer = modelMapper.map(lecturerRequestDTO, Lecturer.class);
         lecturer.setDepartment(department);
 
-        // Xử lý mật khẩu (NẾU CÓ)
-        // if (lecturerRequestDTO.getPassword() != null && !lecturerRequestDTO.getPassword().isEmpty()) {
-        //     lecturer.setPassword(passwordEncoder.encode(lecturerRequestDTO.getPassword()));
-        // } else {
-        //     throw new IllegalArgumentException("Password is required for new lecturer.");
-        // }
+        if (lecturerRequestDTO.getPassword() != null && !lecturerRequestDTO.getPassword().isEmpty()) {
+            lecturer.setPassword(passwordEncoder.encode(lecturerRequestDTO.getPassword()));
+        } else {
+            throw new IllegalArgumentException("Password is required for new lecturer.");
+        }
 
 
         // Xử lý RoleType (nếu CreateLecturerRequestDTO có trường role dạng String)
