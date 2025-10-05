@@ -1,46 +1,31 @@
+// D:/MyCode/Java/teaching-schedule-api/src/main/java/com/thuyloiuni/teaching_schedule_api/repository/SubjectRepository.java
+
 package com.thuyloiuni.teaching_schedule_api.repository;
 
-import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
+import com.thuyloiuni.teaching_schedule_api.entity.Subject; // <<== Sửa lại Entity
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface LecturerRepository extends JpaRepository<Lecturer, Integer> {
+public interface SubjectRepository extends JpaRepository<Subject, Integer> { // <<== Sửa lại tên và kiểu Generic
 
     /**
-     * Tìm kiếm một giảng viên dựa trên mã giảng viên.
-     * Được sử dụng trong service để kiểm tra sự tồn tại trước khi tạo mới.
+     * Tìm kiếm một môn học dựa trên mã môn học.
+     * Được sử dụng trong service để kiểm tra sự tồn tại.
      *
-     * @param lecturerCode Mã giảng viên cần tìm.
-     * @return một Optional chứa Lecturer nếu tìm thấy.
+     * @param subjectCode Mã môn học cần tìm.
+     * @return một Optional chứa Subject nếu tìm thấy.
      */
-    Optional<Lecturer> findByLecturerCode(String lecturerCode);
+    Optional<Subject> findBySubjectCode(String subjectCode); // <<== Sửa lại phương thức truy vấn
 
     /**
-     * Tìm kiếm một giảng viên dựa trên email.
-     * Được sử dụng trong service để kiểm tra sự tồn tại và cho logic đăng nhập.
+     * Kiểm tra xem một mã môn học đã tồn tại trong DB hay chưa.
+     * Hiệu năng tốt hơn findBySubjectCode().isPresent().
      *
-     * @param email Email cần tìm.
-     * @return một Optional chứa Lecturer nếu tìm thấy.
-     */
-    Optional<Lecturer> findByEmail(String email);
-
-    /**
-     * Kiểm tra xem một mã giảng viên đã tồn tại trong DB hay chưa.
-     * Hiệu năng tốt hơn findByLecturerCode().isPresent() vì chỉ cần câu lệnh SELECT COUNT.
-     *
-     * @param lecturerCode Mã giảng viên cần kiểm tra.
+     * @param subjectCode Mã môn học cần kiểm tra.
      * @return true nếu đã tồn tại, false nếu chưa.
      */
-    boolean existsByLecturerCode(String lecturerCode);
-
-    /**
-     * Kiểm tra xem một email đã tồn tại trong DB hay chưa.
-     *
-     * @param email Email cần kiểm tra.
-     * @return true nếu đã tồn tại, false nếu chưa.
-     */
-    boolean existsByEmail(String email);
+    boolean existsBySubjectCode(String subjectCode); // <<== Sửa lại phương thức truy vấn
 }
