@@ -35,7 +35,7 @@ public class SecurityConfig {
                         // ==========================================================
                         // =====             CÁC ENDPOINT CÔNG KHAI             =====
                         // ==========================================================
-                        .requestMatchers("/api/auth/login").permitAll() // Endpoint đăng nhập
+                        .requestMatchers("/api/auth/**").permitAll() // Endpoint đăng nhập
                         .requestMatchers(HttpMethod.POST, "/api/lecturers").permitAll() // Endpoint đăng ký tài khoản giảng viên
 
                         // ==========================================================
@@ -85,7 +85,8 @@ public class SecurityConfig {
                         // ===== QUY TẮC CUỐI CÙNG (FALLBACK) =====
                         // Bất kỳ request nào không khớp với các quy tắc trên đều sẽ bị từ chối.
                         // Điều này an toàn hơn là dùng .anyRequest().authenticated() vì nó buộc bạn phải định nghĩa quyền cho mọi endpoint.
-                        .anyRequest().denyAll()
+                        .anyRequest().authenticated()
+
                 );
 
         // Nếu bạn có JWT, bạn sẽ thêm bộ lọc JWT vào đây
