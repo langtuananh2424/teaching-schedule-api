@@ -18,10 +18,10 @@ public interface SubjectMapper {
      * @param subject Đối tượng Entity.
      * @return Đối tượng DTO.
      */
-    @Mapping(source = "id", target = "id")
+    @Mapping(source = "subjectId", target = "id")
     @Mapping(source = "subjectCode", target = "subjectCode")
     @Mapping(source = "subjectName", target = "subjectName")
-    @Mapping(source = "creditHours", target = "creditHours")
+    @Mapping(source = "credits", target = "credits")
     SubjectDTO toDto(Subject subject);
 
     /**
@@ -29,10 +29,10 @@ public interface SubjectMapper {
      * @param subjectDTO Đối tượng DTO.
      * @return Đối tượng Entity.
      */
-    @Mapping(target = "id", source = "id")
+    @Mapping(target = "subjectId", source = "id")
     @Mapping(target = "subjectCode", source = "subjectCode")
     @Mapping(target = "subjectName", source = "subjectName")
-    @Mapping(target = "creditHours", source = "creditHours")
+    @Mapping(target = "credits", source = "credits")
     // Không cần map các mối quan hệ phức tạp ở đây vì Subject là một entity đơn giản.
     Subject toEntity(SubjectDTO subjectDTO);
 

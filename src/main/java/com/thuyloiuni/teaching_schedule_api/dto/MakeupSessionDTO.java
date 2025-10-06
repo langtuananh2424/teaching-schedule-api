@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class MakeupSessionDTO {
     private Integer makeupSessionId;
-    private Long absentSessionId; // ID của buổi học đã nghỉ
+    private Integer absentSessionId; // ID của buổi học đã nghỉ
     private LocalDateTime makeupDate;
     private Integer makeupStartPeriod;
     private Integer makeupEndPeriod;

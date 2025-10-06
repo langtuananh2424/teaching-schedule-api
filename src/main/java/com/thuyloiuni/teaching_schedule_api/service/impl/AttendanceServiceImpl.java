@@ -33,7 +33,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     @Transactional(readOnly = true)
     public List<AttendanceDTO> getAttendanceBySessionId(Integer sessionId) {
-        if (!scheduleRepository.existsById((long) sessionId)) {
+        if (!scheduleRepository.existsById(sessionId)) {
             throw new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + sessionId);
         }
         List<Attendance> attendances = attendanceRepository.findBySchedule_SessionId(sessionId);
@@ -44,7 +44,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Transactional
     public List<AttendanceDTO> takeAttendance(Integer sessionId, List<TakeAttendanceDTO> attendanceList) {
         // 1. Kiểm tra xem buổi học có tồn tại không
-        Schedule schedule = scheduleRepository.findById((long) sessionId)
+        Schedule schedule = scheduleRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + sessionId));
 
         // 2. Lấy danh sách ID sinh viên từ request

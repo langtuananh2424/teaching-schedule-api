@@ -14,6 +14,6 @@ public class SubjectDTO {
     private Integer id;
     private String subjectCode; // Mã môn học, ví dụ: IT001
     private String subjectName; // Tên môn học, ví dụ: Lập trình hướng đối tượng
-    private int creditHours;    // Số tín chỉ
+    private int credits;    // Số tín chỉ
 
 }

@@ -33,5 +33,5 @@ public class CreateScheduleDTO {
 
     // Khi tạo mới, có thể không cần gửi lên, service sẽ tự gán PENDING
     // Khi cập nhật, có thể gửi lên trạng thái mới
-    private ScheduleStatus status = ScheduleStatus.PLANNED;
+    private ScheduleStatus status = ScheduleStatus.NOT_TAUGHT;
 }

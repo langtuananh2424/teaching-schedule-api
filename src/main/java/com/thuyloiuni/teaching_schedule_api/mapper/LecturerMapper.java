@@ -17,7 +17,7 @@ public interface LecturerMapper {
      * Chuyển đổi từ Lecturer (Entity) sang LecturerDTO (dữ liệu trả về cho client).
      */
     @Mapping(source = "lecturerId", target = "id")
-    @Mapping(source = "department.id", target = "departmentId") // Lấy ID từ đối tượng Department
+    @Mapping(source = "department.departmentId", target = "departmentId") // Lấy ID từ đối tượng Department
     @Mapping(source = "department.departmentName", target = "departmentName") // Lấy tên từ đối tượng Department
     LecturerDTO toDto(Lecturer lecturer);
 

@@ -64,7 +64,7 @@ public class SubjectServiceImpl implements SubjectService {
         // Cập nhật các trường
         existingSubject.setSubjectCode(subjectDTO.getSubjectCode());
         existingSubject.setSubjectName(subjectDTO.getSubjectName());
-        existingSubject.setCreditHours(subjectDTO.getCreditHours());
+        existingSubject.setCredits(subjectDTO.getCredits());
 
         Subject updatedSubject = subjectRepository.save(existingSubject);
         return subjectMapper.toDto(updatedSubject);

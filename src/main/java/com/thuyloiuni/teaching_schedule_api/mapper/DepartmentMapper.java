@@ -1,4 +1,3 @@
-// src/main/java/com/thuyloiuni/teaching_schedule_api/mapper/DepartmentMapper.java
 package com.thuyloiuni.teaching_schedule_api.mapper;
 
 import org.mapstruct.Mapper;
@@ -35,11 +34,11 @@ public interface DepartmentMapper {
     @Mapping(target = "subjects", ignore = true)  // Bỏ qua việc map danh sách subjects từ DTO
     Department toEntity(DepartmentDTO departmentDTO);
     /**
-     * Chuyển đổi một danh sách DepartmentJava(Entity) sang danh sách DepartmentDTO.
+     * Chuyển đổi một danh sách Department (Entity) sang danh sách DepartmentDTO.
      * MapStruct sẽ tự động sử dụng phương thức 'toDto' cho mỗi phần tử.
      * @param departments Danh sách các Entity.
      * @return Danh sách các DTO tương ứng.
      */
-    List<DepartmentDTO> toDtoList(List<DepartmentJava> departments);
+    List<DepartmentDTO> toDtoList(List<Department> departments);
 
 }

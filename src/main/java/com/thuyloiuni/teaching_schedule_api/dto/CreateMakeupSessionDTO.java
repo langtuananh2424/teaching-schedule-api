@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class CreateMakeupSessionDTO {
     @NotNull(message = "ID của buổi học đã nghỉ không được để trống")
-    private Long absentSessionId;
+    private Integer absentSessionId;
 
     @NotNull(message = "Ngày dạy bù không được để trống")
     @Future(message = "Ngày dạy bù phải là một ngày trong tương lai")
