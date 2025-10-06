@@ -1,13 +1,13 @@
 # Cảm ơn vì đã đọc
 Cảm ơn vì đã để ý đến lời cảm ơn này.
 # Phiên bản
-Maven 3.9.11
-Java 17.0.12
-MySql 8.0.43
+Maven 3.9.11  
+Java 17.0.12  
+MySql 8.0.43  
 # Trước khi chạy
 Hãy đảm bảo rằng đã tạo database và chỉnh sửa file src/main/resources/application.properties sao cho đúng với database đang sử dụng
 
 # Cách khởi động
-Chạy các lệnh sau:
-mvn clean install
-mvn spring-boot:run
+Chạy các lệnh sau:  
+mvn clean install  
+mvn spring-boot:run  
