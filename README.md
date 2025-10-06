@@ -5,7 +5,8 @@ Maven 3.9.11
 Java 17.0.12  
 MySql 8.0.43  
 # Trước khi chạy
-Hãy đảm bảo rằng đã tạo database và chỉnh sửa file src/main/resources/application.properties sao cho đúng với database đang sử dụng
+Hãy đảm bảo rằng đã tạo database và chỉnh sửa file src/main/resources/application.properties sao cho đúng với database đang sử dụng  
+Code tạo database ở file teaching schedule.sql
 
 # Cách khởi động
 Chạy các lệnh sau:  
