@@ -1,6 +1,7 @@
 package com.thuyloiuni.teaching_schedule_api.repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,18 +12,18 @@ import com.thuyloiuni.teaching_schedule_api.entity.enums.ScheduleStatus;
 
 @Repository
 
-public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
+public interface ScheduleRepository extends JpaRepository<Schedule, Integer> {
     List<Schedule> findByAssignment_AssignmentId(Integer assignmentId);
 
     List<Schedule> findByAssignment_Lecturer_LecturerId(Integer lecturerId);
 
-    List<Schedule> findBySessionDate(LocalDate sessionDate);
+    List<Schedule> findBySessionDate(LocalDateTime sessionDate);
 
-    List<Schedule> findBySessionDateBetween(LocalDate startDate, LocalDate endDate);
+    List<Schedule> findBySessionDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
-    List<Schedule> findByAssignment_Lecturer_LecturerIdAndSessionDateBetween(Integer lecturerId, LocalDate startDate, LocalDate endDate);
+    List<Schedule> findByAssignment_Lecturer_LecturerIdAndSessionDateBetween(Integer lecturerId, LocalDateTime startDate, LocalDateTime endDate);
 
     List<Schedule> findByStatus(ScheduleStatus status);
 
-    List<Schedule> findByAssignment_StudentClass_ClassIdAndSessionDate(Integer classId, LocalDate sessionDate);
+    List<Schedule> findByAssignment_StudentClass_ClassIdAndSessionDate(Integer classId, LocalDateTime sessionDate);
 }
