@@ -1,25 +1,33 @@
 package com.thuyloiuni.teaching_schedule_api.config;
 
+import com.thuyloiuni.teaching_schedule_api.entity.Department;
 import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 import com.thuyloiuni.teaching_schedule_api.repository.LecturerRepository;
+import com.thuyloiuni.teaching_schedule_api.repository.DepartmentRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j // Sử dụng Lombok để tạo logger, giúp in log ra console một cách chuyên nghiệp
+@Slf4j
 public class AdminAccountInitializer implements CommandLineRunner {
 
     private final LecturerRepository lecturerRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private final DepartmentRepository departmentRepository;
+
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
         // 1. Tìm kiếm tất cả các tài khoản có vai trò là ADMIN
         List<Lecturer> adminAccounts = lecturerRepository.findByRole(RoleType.ADMIN);
@@ -41,8 +49,14 @@ public class AdminAccountInitializer implements CommandLineRunner {
             adminUser.setRole(RoleType.ADMIN);
 
             // 6. Gán các giá trị not-null khác nếu có (ví dụ: Department)
-            // Department defaultDept = departmentRepository.findById(1).orElse(null);
-            // adminUser.setDepartment(defaultDept);
+            Department defaultDept = departmentRepository.findById(1)
+                    .orElseGet(() -> {
+                        log.info("Không tìm thấy Khoa mặc định (ID=1). Đang tạo Khoa 'Công nghệ thông tin'...");
+                        Department newDept = new Department();
+                        newDept.setDepartmentName("Công nghệ thông tin");
+                        return departmentRepository.save(newDept);
+                    });
+            adminUser.setDepartment(defaultDept);
 
             // 7. Lưu tài khoản vào cơ sở dữ liệu
             lecturerRepository.save(adminUser);

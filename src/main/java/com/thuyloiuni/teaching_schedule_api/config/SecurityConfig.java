@@ -1,23 +1,31 @@
 package com.thuyloiuni.teaching_schedule_api.config;
 
+import com.thuyloiuni.teaching_schedule_api.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Rất quan trọng để @PreAuthorize hoạt động
+@EnableMethodSecurity // Giữ lại để phòng khi cần dùng trong tương lai
+@RequiredArgsConstructor // Sử dụng constructor injection
 public class SecurityConfig {
+
+    private final UserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter; // Inject JwtAuthenticationFilter
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -30,70 +38,74 @@ public class SecurityConfig {
     }
 
     @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Vô hiệu hóa CSRF cho API
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Sử dụng stateless session
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // ==========================================================
-                        // =====             CÁC ENDPOINT CÔNG KHAI             =====
-                        // ==========================================================
-                        .requestMatchers("/api/auth/**").permitAll() // Endpoint đăng nhập
-                        .requestMatchers(HttpMethod.POST, "/api/lecturers").permitAll() // Endpoint đăng ký tài khoản giảng viên
+                        // =================================================================
+                        // ===== 1. CÁC ENDPOINT CÔNG KHAI (KHÔNG CẦN XÁC THỰC)         =====
+                        // =================================================================
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/lecturers").permitAll()
 
-                        // ==========================================================
-                        // =====           QUYỀN CHUNG CHO NGƯỜI DÙNG          =====
-                        // ==========================================================
-                        // Yêu cầu người dùng phải xác thực (đăng nhập) để đọc thông tin.
-                        // Áp dụng cho cả LECTURER và ADMIN.
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/lecturers/**",      // Xem thông tin giảng viên
-                                "/api/subjects/**",       // Xem thông tin môn học
-                                "/api/departments/**",    // Xem thông tin khoa
-                                "/api/student-classes/**",// Xem thông tin lớp học
-                                "/api/students/**",       // Xem thông tin sinh viên
-                                "/api/assignments/**",    // Xem thông tin phân công
-                                "/api/schedules/**",      // Xem lịch học chi tiết
-                                "/api/attendance/**",     // Xem kết quả điểm danh
-                                "/api/absence-requests/**",// Xem đơn xin nghỉ
-                                "/api/makeup-sessions/**" // Xem lịch dạy bù
-                        ).authenticated()
+                        // =================================================================
+                        // ===== 2. QUYỀN RIÊNG CỦA ADMIN (Hành động ghi/sửa/xóa)      =====
+                        // =================================================================
+                        // Các quy tắc này cụ thể nhất (method + role), đặt lên trên
+                        .requestMatchers(HttpMethod.PUT, "/api/lecturers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/lecturers/**").hasRole("ADMIN")
 
-                        // ==========================================================
-                        // =====            QUYỀN RIÊNG CỦA LECTURER           =====
-                        // ==========================================================
-                        // Các hành động mà chỉ giảng viên mới thực hiện
+                        .requestMatchers(HttpMethod.POST, "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.PATCH, "/api/absence-requests/**", "/api/makeup-sessions/**").hasRole("ADMIN") // Duyệt đơn
+
+                        // =================================================================
+                        // ===== 3. QUYỀN RIÊNG CỦA LECTURER (Hành động tạo)           =====
+                        // =================================================================
                         .requestMatchers(HttpMethod.POST,
                                 "/api/attendance/**",      // Giảng viên thực hiện điểm danh
                                 "/api/absence-requests",   // Giảng viên tạo đơn xin nghỉ
                                 "/api/makeup-sessions"     // Giảng viên đăng ký dạy bù
                         ).hasRole("LECTURER")
 
-                        // ==========================================================
-                        // =====        QUYỀN QUẢN TRỊ VIÊN (ADMIN)            =====
-                        // ==========================================================
-                        // Các hành động quản lý, chỉ ADMIN mới có quyền
+                        // =================================================================
+                        // ===== 4. QUYỀN CHUNG (CHỈ CẦN ĐĂNG NHẬP) - Đa số là GET      =====
+                        // =================================================================
+                        // Vì các quyền ghi/sửa/xóa đã được xử lý ở trên, các request còn lại (chủ yếu là GET) sẽ rơi vào đây.
                         .requestMatchers(
-                                "/api/lecturers/**",       // Quản lý giảng viên (PUT, DELETE)
-                                "/api/subjects/**",        // Quản lý môn học (POST, PUT, DELETE)
-                                "/api/departments/**",     // Quản lý khoa (POST, PUT, DELETE)
-                                "/api/student-classes/**", // Quản lý lớp học (POST, PUT, DELETE)
-                                "/api/students/**",        // Quản lý sinh viên (POST, PUT, DELETE)
-                                "/api/assignments/**",     // Quản lý phân công (POST, PUT, DELETE)
-                                "/api/schedules/**",       // Quản lý lịch học (POST, PUT, DELETE)
-                                "/api/absence-requests/**",// Duyệt đơn xin nghỉ (PATCH)
-                                "/api/makeup-sessions/**"  // Duyệt lịch dạy bù (PATCH)
-                        ).hasRole("ADMIN")
+                                "/api/lecturers/**",
+                                "/api/subjects/**",
+                                "/api/departments/**",
+                                "/api/student-classes/**",
+                                "/api/students/**",
+                                "/api/assignments/**",
+                                "/api/schedules/**",
+                                "/api/attendance/**",
+                                "/api/absence-requests/**",
+                                "/api/makeup-sessions/**"
+                        ).authenticated()
 
-                        // ===== QUY TẮC CUỐI CÙNG (FALLBACK) =====
-                        // Bất kỳ request nào không khớp với các quy tắc trên đều sẽ bị từ chối.
-                        // Điều này an toàn hơn là dùng .anyRequest().authenticated() vì nó buộc bạn phải định nghĩa quyền cho mọi endpoint.
+                        // =================================================================
+                        // ===== 5. QUY TẮC CUỐI CÙNG (FALLBACK)                         =====
+                        // =================================================================
                         .anyRequest().authenticated()
-
                 );
 
-        // Nếu bạn có JWT, bạn sẽ thêm bộ lọc JWT vào đây
-        // http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.authenticationProvider(authenticationProvider());
+
+        // KÍCH HOẠT BỘ LỌC JWT - BẮT BUỘC PHẢI CÓ
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

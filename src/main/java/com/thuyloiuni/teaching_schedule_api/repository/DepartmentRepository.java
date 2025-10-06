@@ -10,5 +10,6 @@ import com.thuyloiuni.teaching_schedule_api.entity.Department;
 @Repository
 
 public interface DepartmentRepository extends JpaRepository<Department, Integer> {
+
     Optional<Department> findByDepartmentName(String departmentName);
 }
