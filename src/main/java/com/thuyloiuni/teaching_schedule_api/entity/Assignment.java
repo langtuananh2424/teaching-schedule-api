@@ -42,10 +42,10 @@ public class Assignment {
     @JoinColumn(name = "lecturer_id", referencedColumnName = "lecturer_id", nullable = false)
     private Lecturer lecturer;
 
-    @Column(name = "theory_session", nullable = false)
+    @Column(name = "theory_sessions", nullable = false)
     private Integer theorySession;
     
-    @Column(name = "practice_session", nullable = false)
+    @Column(name = "practice_sessions", nullable = false)
     private Integer practiceSession;
 
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

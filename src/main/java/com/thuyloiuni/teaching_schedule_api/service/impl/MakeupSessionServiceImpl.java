@@ -14,6 +14,7 @@ import com.thuyloiuni.teaching_schedule_api.repository.MakeupSessionRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
 import com.thuyloiuni.teaching_schedule_api.service.MakeupSessionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     private final ScheduleRepository scheduleRepository;
     private final LecturerRepository lecturerRepository;
     private final MakeupSessionMapper makeupSessionMapper;
+    private final SimpMessageSendingOperations messagingTemplate; // Đã thêm
 
     @Override
     @Transactional(readOnly = true)
@@ -54,10 +56,15 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         newSession.setMakeupStartPeriod(createDto.getMakeupStartPeriod());
         newSession.setMakeupEndPeriod(createDto.getMakeupEndPeriod());
         newSession.setMakeupClassroom(createDto.getMakeupClassroom());
-        newSession.setApprovalStatus(ApprovalStatus.PENDING); // Mặc định là chờ duyệt
+        newSession.setApprovalStatus(ApprovalStatus.PENDING);
 
         MakeupSession savedSession = makeupSessionRepository.save(newSession);
-        return makeupSessionMapper.toDto(savedSession);
+        MakeupSessionDTO createdDto = makeupSessionMapper.toDto(savedSession);
+
+        // Gửi thông báo qua WebSocket
+        messagingTemplate.convertAndSend("/topic/new-makeup-request", createdDto);
+
+        return createdDto;
     }
 
     @Override
@@ -74,5 +81,12 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
 
         MakeupSession updatedSession = makeupSessionRepository.save(session);
         return makeupSessionMapper.toDto(updatedSession);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MakeupSessionDTO> getMakeupSessionsByStatus(ApprovalStatus status) {
+        List<MakeupSession> sessions = makeupSessionRepository.findByApprovalStatus(status);
+        return makeupSessionMapper.toDtoList(sessions);
     }
 }

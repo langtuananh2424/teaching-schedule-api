@@ -3,6 +3,7 @@ package com.thuyloiuni.teaching_schedule_api.controller;
 import com.thuyloiuni.teaching_schedule_api.dto.ApproveMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.MakeupSessionDTO;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import com.thuyloiuni.teaching_schedule_api.service.MakeupSessionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +22,20 @@ public class MakeupSessionController {
     private final MakeupSessionService makeupSessionService;
 
     /**
-     * Lấy tất cả các đăng ký dạy bù. Chỉ ADMIN có quyền xem tất cả.
+     * Lấy tất cả các đăng ký dạy bù, có thể lọc theo trạng thái.
+     * Chỉ ADMIN có quyền xem tất cả.
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<MakeupSessionDTO>> getAllMakeupSessions() {
-        return ResponseEntity.ok(makeupSessionService.getAllMakeupSessions());
+    public ResponseEntity<List<MakeupSessionDTO>> getAllMakeupSessions(
+            @RequestParam(required = false) ApprovalStatus status) {
+        List<MakeupSessionDTO> sessions;
+        if (status != null) {
+            sessions = makeupSessionService.getMakeupSessionsByStatus(status);
+        } else {
+            sessions = makeupSessionService.getAllMakeupSessions();
+        }
+        return ResponseEntity.ok(sessions);
     }
 
     /**

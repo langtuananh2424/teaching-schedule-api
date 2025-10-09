@@ -3,6 +3,7 @@ package com.thuyloiuni.teaching_schedule_api.controller;
 import com.thuyloiuni.teaching_schedule_api.dto.AbsenceRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.ApproveAbsenceRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateAbsenceRequestDTO;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import com.thuyloiuni.teaching_schedule_api.service.AbsenceRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +22,20 @@ public class AbsenceRequestController {
     private final AbsenceRequestService absenceRequestService;
 
     /**
-     * Lấy tất cả các đơn xin nghỉ. Chỉ ADMIN có quyền xem tất cả.
+     * Lấy tất cả các đơn xin nghỉ, có thể lọc theo trạng thái.
+     * Chỉ ADMIN có quyền xem.
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AbsenceRequestDTO>> getAllRequests() {
-        return ResponseEntity.ok(absenceRequestService.getAllRequests());
+    public ResponseEntity<List<AbsenceRequestDTO>> getAllRequests(
+            @RequestParam(required = false) ApprovalStatus status) {
+        List<AbsenceRequestDTO> requests;
+        if (status != null) {
+            requests = absenceRequestService.getRequestsByStatus(status);
+        } else {
+            requests = absenceRequestService.getAllRequests();
+        }
+        return ResponseEntity.ok(requests);
     }
 
     /**

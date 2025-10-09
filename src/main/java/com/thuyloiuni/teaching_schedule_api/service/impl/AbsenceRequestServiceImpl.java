@@ -14,6 +14,7 @@ import com.thuyloiuni.teaching_schedule_api.repository.LecturerRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
 import com.thuyloiuni.teaching_schedule_api.service.AbsenceRequestService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     private final ScheduleRepository scheduleRepository;
     private final LecturerRepository lecturerRepository;
     private final AbsenceRequestMapper absenceRequestMapper;
+    private final SimpMessageSendingOperations messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,42 +48,48 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     @Override
     @Transactional
     public AbsenceRequestDTO createRequest(CreateAbsenceRequestDTO createDto) {
-        // Tìm các đối tượng liên quan
         Schedule schedule = scheduleRepository.findById(createDto.getSessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + createDto.getSessionId()));
 
         Lecturer lecturer = lecturerRepository.findById(createDto.getLecturerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên với ID: " + createDto.getLecturerId()));
 
-        // Tạo đối tượng AbsenceRequest mới
         AbsenceRequest newRequest = new AbsenceRequest();
         newRequest.setSchedule(schedule);
         newRequest.setLecturer(lecturer);
         newRequest.setReason(createDto.getReason());
-        newRequest.setApprovalStatus(ApprovalStatus.PENDING); // Mặc định là chờ duyệt
+        newRequest.setApprovalStatus(ApprovalStatus.PENDING);
         newRequest.setCreatedAt(LocalDateTime.now());
-        // approver lúc này là null
 
         AbsenceRequest savedRequest = absenceRequestRepository.save(newRequest);
-        return absenceRequestMapper.toDto(savedRequest);
+        AbsenceRequestDTO createdDto = absenceRequestMapper.toDto(savedRequest);
+
+        // Gửi thông báo qua WebSocket
+        messagingTemplate.convertAndSend("/topic/new-request", createdDto);
+
+        return createdDto;
     }
 
     @Override
     @Transactional
     public AbsenceRequestDTO approveRequest(Integer requestId, ApproveAbsenceRequestDTO approveDto) {
-        // Tìm đơn xin nghỉ
         AbsenceRequest request = absenceRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn xin nghỉ với ID: " + requestId));
 
-        // Tìm người duyệt
         Lecturer approver = lecturerRepository.findById(approveDto.getApproverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người duyệt với ID: " + approveDto.getApproverId()));
 
-        // Cập nhật trạng thái
         request.setApprovalStatus(approveDto.getNewStatus());
         request.setApprover(approver);
 
         AbsenceRequest updatedRequest = absenceRequestRepository.save(request);
         return absenceRequestMapper.toDto(updatedRequest);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AbsenceRequestDTO> getRequestsByStatus(ApprovalStatus status) {
+        List<AbsenceRequest> requests = absenceRequestRepository.findByApprovalStatus(status);
+        return absenceRequestMapper.toDtoList(requests);
     }
 }
