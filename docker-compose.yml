@@ -1,14 +1,10 @@
 services:
   # Dịch vụ ứng dụng Spring Boot
   app:
-    # Build image từ Dockerfile trong thư mục hiện tại
     build: .
-    # Khởi động lại container nếu nó bị dừng
     restart: always
-    # Ánh xạ cổng 8080 của máy chủ vào cổng 8080 của container
     ports:
       - "8080:8080"
-    # Dịch vụ này phụ thuộc vào dịch vụ 'db', đảm bảo 'db' khởi động trước
     depends_on:
       - db
     # Truyền các biến môi trường vào container ứng dụng
