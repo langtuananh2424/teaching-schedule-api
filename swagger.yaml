@@ -1,0 +1,250 @@
+openapi: 3.0.0
+info:
+  title: API Lịch Giảng Dạy
+  description: Tài liệu đặc tả API cho ứng dụng Lịch Giảng Dạy, phát triển cho Đại học Thủy Lợi.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Máy chủ local để phát triển
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    # DTOs cho việc tạo và cập nhật
+    CreateLecturerRequestDTO:
+      type: object
+      properties:
+        lecturerCode: { type: string }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        password: { type: string }
+        departmentId: { type: integer }
+        role: { type: string, enum: [ADMIN, LECTURER] }
+    UpdatePasswordDTO:
+      type: object
+      properties:
+        oldPassword: { type: string }
+        newPassword: { type: string }
+    CreateStudentDTO:
+      type: object
+      properties:
+        studentCode: { type: string }
+        fullName: { type: string }
+        classId: { type: integer }
+
+    # DTOs cho việc hiển thị
+    DepartmentDTO:
+      type: object
+      properties:
+        departmentId: { type: integer, readOnly: true }
+        departmentName: { type: string }
+    SubjectDTO:
+      type: object
+      properties:
+        subjectId: { type: integer, readOnly: true }
+        subjectCode: { type: string }
+        subjectName: { type: string }
+    StudentClassDTO:
+      type: object
+      properties:
+        id: { type: integer, readOnly: true }
+        className: { type: string }
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Các API xác thực
+  - name: Lecturer
+    description: Các thao tác về Giảng viên
+  - name: Department
+    description: Các thao tác về Khoa/Viện
+  - name: Subject
+    description: Các thao tác về Môn học
+  - name: Student Class
+    description: Các thao tác về Lớp học
+  - name: Student
+    description: Các thao tác về Sinh viên
+  - name: Assignment
+    description: Các thao tác về Phân công giảng dạy
+  - name: Schedule
+    description: Các thao tác về Lịch trình buổi học
+  - name: Attendance
+    description: Các thao tác về Điểm danh
+  - name: Absence Request
+    description: Các thao tác về Xin nghỉ dạy
+  - name: Makeup Session
+    description: Các thao tác về Dạy bù
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập và lấy token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, example: admin@thuyloi.edu.vn }
+                password: { type: string, example: "admin" }
+      responses:
+        '200':
+          description: Đăng nhập thành công
+      security: []
+
+  # CRUD cho Department
+  /api/departments:
+    get:
+      tags: [Department]
+      summary: Lấy tất cả các khoa
+      responses:
+        '200': { description: Danh sách các khoa }
+    post:
+      tags: [Department]
+      summary: Tạo một khoa mới (Admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } }
+      responses:
+        '201': { description: Tạo khoa thành công }
+
+  /api/departments/{id}:
+    get:
+      tags: [Department]
+      summary: Lấy khoa theo ID
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '200': { description: Chi tiết khoa }
+    put:
+      tags: [Department]
+      summary: Cập nhật một khoa (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } }
+      responses:
+        '200': { description: Cập nhật khoa thành công }
+    delete:
+      tags: [Department]
+      summary: Xóa một khoa (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '204': { description: Xóa khoa thành công }
+
+  # CRUD cho Subject
+  /api/subjects:
+    get:
+      tags: [Subject]
+      summary: Lấy tất cả môn học
+      responses:
+        '200': { description: Danh sách các môn học }
+    post:
+      tags: [Subject]
+      summary: Tạo môn học mới (Admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } }
+      responses:
+        '201': { description: Tạo môn học thành công }
+
+  /api/subjects/{id}:
+    get:
+      tags: [Subject]
+      summary: Lấy môn học theo ID
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '200': { description: Chi tiết môn học }
+    put:
+      tags: [Subject]
+      summary: Cập nhật môn học (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } }
+      responses:
+        '200': { description: Cập nhật môn học thành công }
+    delete:
+      tags: [Subject]
+      summary: Xóa môn học (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '204': { description: Xóa môn học thành công }
+
+  # CRUD cho Student Class
+  /api/student-classes:
+    get:
+      tags: [Student Class]
+      summary: Lấy tất cả các lớp học
+      responses:
+        '200': { description: Danh sách các lớp }
+    post:
+      tags: [Student Class]
+      summary: Tạo lớp học mới (Admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } }
+      responses:
+        '201': { description: Tạo lớp thành công }
+
+  /api/student-classes/{id}:
+    get:
+      tags: [Student Class]
+      summary: Lấy lớp học theo ID
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '200': { description: Chi tiết lớp học }
+    put:
+      tags: [Student Class]
+      summary: Cập nhật lớp học (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } }
+      responses:
+        '200': { description: Cập nhật lớp thành công }
+    delete:
+      tags: [Student Class]
+      summary: Xóa lớp học (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '204': { description: Xóa lớp thành công }
+
+  # CRUD cho Student
+  /api/students:
+    get:
+      tags: [Student]
+      summary: Lấy tất cả sinh viên
+      responses:
+        '200': { description: Danh sách sinh viên }
+    post:
+      tags: [Student]
+      summary: Tạo sinh viên mới (Admin)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStudentDTO' } } } }
+      responses:
+        '201': { description: Tạo sinh viên thành công }
+
+  /api/students/{id}:
+    get:
+      tags: [Student]
+      summary: Lấy sinh viên theo ID
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '200': { description: Chi tiết sinh viên }
+    put:
+      tags: [Student]
+      summary: Cập nhật sinh viên (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStudentDTO' } } } }
+      responses:
+        '200': { description: Cập nhật sinh viên thành công }
+    delete:
+      tags: [Student]
+      summary: Xóa sinh viên (Admin)
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '204': { description: Xóa sinh viên thành công }
+
+  /api/students/by-class/{classId}:
+    get:
+      tags: [Student]
+      summary: Lấy sinh viên theo ID lớp
+      parameters: [ { name: classId, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        '200': { description: Danh sách sinh viên trong lớp }

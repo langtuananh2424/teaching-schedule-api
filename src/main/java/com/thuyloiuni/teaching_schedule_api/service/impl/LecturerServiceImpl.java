@@ -2,6 +2,7 @@ package com.thuyloiuni.teaching_schedule_api.service.impl;
 
 import com.thuyloiuni.teaching_schedule_api.dto.CreateLecturerRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.LecturerDTO;
+import com.thuyloiuni.teaching_schedule_api.dto.UpdatePasswordDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.Department;
 import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
@@ -19,7 +20,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor // Lombok: tự động tạo constructor cho các trường final
+@RequiredArgsConstructor
 public class LecturerServiceImpl implements LecturerService {
 
     private final LecturerRepository lecturerRepository;
@@ -30,7 +31,6 @@ public class LecturerServiceImpl implements LecturerService {
     @Override
     @Transactional
     public LecturerDTO createLecturer(CreateLecturerRequestDTO lecturerRequestDTO) {
-        // Kiểm tra sự tồn tại (logic này rất tốt và giữ nguyên)
         if (lecturerRepository.existsByLecturerCode(lecturerRequestDTO.getLecturerCode())) {
             throw new IllegalArgumentException("Mã giảng viên '" + lecturerRequestDTO.getLecturerCode() + "' đã tồn tại.");
         }
@@ -38,21 +38,16 @@ public class LecturerServiceImpl implements LecturerService {
             throw new IllegalArgumentException("Email '" + lecturerRequestDTO.getEmail() + "' đã tồn tại.");
         }
 
-        // Tìm Department
         Department department = departmentRepository.findById(lecturerRequestDTO.getDepartmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + lecturerRequestDTO.getDepartmentId()));
 
-        // Ánh xạ từ DTO sang Entity bằng MapStruct
         Lecturer lecturer = lecturerMapper.fromCreateDtoToEntity(lecturerRequestDTO);
 
-        // Xử lý các trường phức tạp thủ công
         lecturer.setDepartment(department);
         lecturer.setPassword(passwordEncoder.encode(lecturerRequestDTO.getPassword()));
 
-        // Gán vai trò (nếu có trong DTO) hoặc mặc định là LECTURER
         lecturer.setRole(lecturerRequestDTO.getRole() != null ? lecturerRequestDTO.getRole() : RoleType.LECTURER);
 
-        // Lưu và trả về DTO đã được map
         Lecturer savedLecturer = lecturerRepository.save(lecturer);
         return lecturerMapper.toDto(savedLecturer);
     }
@@ -63,7 +58,6 @@ public class LecturerServiceImpl implements LecturerService {
         Lecturer existingLecturer = lecturerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên với ID: " + id));
 
-        // Kiểm tra unique constraints cho code và email nếu chúng thay đổi
         if (StringUtils.hasText(lecturerRequestDTO.getLecturerCode()) && !existingLecturer.getLecturerCode().equals(lecturerRequestDTO.getLecturerCode())) {
             if (lecturerRepository.existsByLecturerCode(lecturerRequestDTO.getLecturerCode())) {
                 throw new IllegalArgumentException("Mã giảng viên '" + lecturerRequestDTO.getLecturerCode() + "' đã được sử dụng.");
@@ -78,24 +72,19 @@ public class LecturerServiceImpl implements LecturerService {
             existingLecturer.setEmail(lecturerRequestDTO.getEmail());
         }
 
-        // Cập nhật các trường đơn giản
         if (StringUtils.hasText(lecturerRequestDTO.getFullName())) {
             existingLecturer.setFullName(lecturerRequestDTO.getFullName());
         }
 
-        // Cập nhật Department nếu ID được cung cấp và khác ID hiện tại
         if (lecturerRequestDTO.getDepartmentId() != null && !existingLecturer.getDepartment().getDepartmentId().equals(lecturerRequestDTO.getDepartmentId())) {
             Department department = departmentRepository.findById(lecturerRequestDTO.getDepartmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + lecturerRequestDTO.getDepartmentId()));
             existingLecturer.setDepartment(department);
         }
 
-        // Cập nhật vai trò
         if (lecturerRequestDTO.getRole() != null) {
             existingLecturer.setRole(lecturerRequestDTO.getRole());
         }
-
-        // Không cho phép cập nhật mật khẩu qua API này. Tạo một API riêng cho việc "đổi mật khẩu".
 
         Lecturer updatedLecturer = lecturerRepository.save(existingLecturer);
         return lecturerMapper.toDto(updatedLecturer);
@@ -107,7 +96,6 @@ public class LecturerServiceImpl implements LecturerService {
         if (!lecturerRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy giảng viên với ID: " + id);
         }
-        // Thêm logic kiểm tra ràng buộc trước khi xóa nếu cần
         lecturerRepository.deleteById(id);
     }
 
@@ -156,5 +144,19 @@ public class LecturerServiceImpl implements LecturerService {
     public List<LecturerDTO> getLecturersByRole(RoleType role) {
         List<Lecturer> lecturers = lecturerRepository.findByRole(role);
         return lecturerMapper.toDtoList(lecturers);
+    }
+
+    @Override
+    @Transactional
+    public void updatePassword(Integer id, UpdatePasswordDTO passwordDTO) {
+        Lecturer lecturer = lecturerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên với ID: " + id));
+
+        if (!passwordEncoder.matches(passwordDTO.getOldPassword(), lecturer.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu cũ không chính xác.");
+        }
+
+        lecturer.setPassword(passwordEncoder.encode(passwordDTO.getNewPassword()));
+        lecturerRepository.save(lecturer);
     }
 }

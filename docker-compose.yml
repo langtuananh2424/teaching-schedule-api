@@ -1,38 +1,30 @@
 services:
-  # Dịch vụ ứng dụng Spring Boot
   app:
+    #image: tyr24/teaching-schedule-api-app:latest
     build: .
     restart: always
     ports:
-      - "8080:8080"
+      - "0.0.0.0:8080:8080"
     depends_on:
       - db
-    # Truyền các biến môi trường vào container ứng dụng
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/teaching_schedule_db?useSSL=false
       - SPRING_DATASOURCE_USERNAME=app_user
       - SPRING_DATASOURCE_PASSWORD=user123456
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-
-  # Dịch vụ database MySQL
   db:
     image: mysql:8.0
     restart: always
     container_name: mysql_db_container
     command: --default-authentication-plugin=mysql_native_password
-    # Truyền các biến môi trường để cấu hình MySQL
     environment:
       - MYSQL_DATABASE=teaching_schedule_db
       - MYSQL_USER=app_user
       - MYSQL_PASSWORD=user123456
       - MYSQL_ROOT_PASSWORD=root123456
-    # (Tùy chọn nhưng khuyên dùng) Lưu trữ dữ liệu database bền vững
     volumes:
       - db_data:/var/lib/mysql
-    # Ánh xạ cổng (để có thể kết nối từ bên ngoài nếu cần)
     ports:
       - "3307:3306"
-
-# Định nghĩa một volume tên là 'db_data'
 volumes:
   db_data:

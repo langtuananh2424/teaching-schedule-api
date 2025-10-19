@@ -10,6 +10,7 @@ import com.thuyloiuni.teaching_schedule_api.repository.AssignmentRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
 import com.thuyloiuni.teaching_schedule_api.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -21,6 +22,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final AssignmentRepository assignmentRepository;
     private final ScheduleMapper scheduleMapper;
+    private final SimpMessageSendingOperations messagingTemplate; // Added for WebSocket
 
     @Override
     @Transactional(readOnly = true)
@@ -53,7 +55,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         Schedule newSchedule = new Schedule();
         newSchedule.setAssignment(assignment);
-        updateScheduleFromDto(newSchedule, createDto); // Sử dụng helper method để gán các trường chung
+        updateScheduleFromDto(newSchedule, createDto); // Use helper method
 
         Schedule savedSchedule = scheduleRepository.save(newSchedule);
         return scheduleMapper.toDto(savedSchedule);
@@ -65,17 +67,25 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule existingSchedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + id));
 
-        // Kiểm tra xem phân công có thay đổi không
         if (!existingSchedule.getAssignment().getAssignmentId().equals(updateDto.getAssignmentId())) {
             Assignment assignment = assignmentRepository.findById(updateDto.getAssignmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phân công với ID: " + updateDto.getAssignmentId()));
             existingSchedule.setAssignment(assignment);
         }
 
-        updateScheduleFromDto(existingSchedule, updateDto); // Sử dụng helper method
+        updateScheduleFromDto(existingSchedule, updateDto);
 
         Schedule updatedSchedule = scheduleRepository.save(existingSchedule);
-        return scheduleMapper.toDto(updatedSchedule);
+        ScheduleDTO updatedDto = scheduleMapper.toDto(updatedSchedule);
+
+        // --- WebSocket Integration ---
+        // Send a notification to the lecturer of this schedule
+        Integer lecturerId = updatedSchedule.getAssignment().getLecturer().getLecturerId();
+        String destination = "/topic/lecturer/" + lecturerId;
+        messagingTemplate.convertAndSend(destination, updatedDto);
+        // --- End WebSocket Integration ---
+
+        return updatedDto;
     }
 
     @Override
@@ -84,13 +94,9 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (!scheduleRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + id);
         }
-        // Có thể thêm logic kiểm tra ràng buộc (ví dụ: không cho xóa nếu đã có điểm danh)
         scheduleRepository.deleteById(id);
     }
 
-    /**
-     * Helper method để gán các thuộc tính từ DTO vào Entity, tránh lặp code.
-     */
     private void updateScheduleFromDto(Schedule schedule, CreateScheduleDTO dto) {
         schedule.setSessionDate(dto.getSessionDate());
         schedule.setLessonOrder(dto.getLessonOrder());

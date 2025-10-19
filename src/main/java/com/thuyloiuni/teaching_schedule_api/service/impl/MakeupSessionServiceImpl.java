@@ -28,7 +28,7 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     private final ScheduleRepository scheduleRepository;
     private final LecturerRepository lecturerRepository;
     private final MakeupSessionMapper makeupSessionMapper;
-    private final SimpMessageSendingOperations messagingTemplate; // Đã thêm
+    private final SimpMessageSendingOperations messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -61,7 +61,7 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         MakeupSession savedSession = makeupSessionRepository.save(newSession);
         MakeupSessionDTO createdDto = makeupSessionMapper.toDto(savedSession);
 
-        // Gửi thông báo qua WebSocket
+        // Gửi thông báo đến admin
         messagingTemplate.convertAndSend("/topic/new-makeup-request", createdDto);
 
         return createdDto;
@@ -80,7 +80,15 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         session.setApprover(approver);
 
         MakeupSession updatedSession = makeupSessionRepository.save(session);
-        return makeupSessionMapper.toDto(updatedSession);
+        MakeupSessionDTO updatedDto = makeupSessionMapper.toDto(updatedSession);
+
+        // Gửi thông báo đến giảng viên đã tạo yêu cầu
+        // Giảng viên tạo yêu cầu dạy bù chính là giảng viên của buổi học đã nghỉ
+        Integer lecturerId = session.getAbsentRequest().getAssignment().getLecturer().getLecturerId();
+        String destination = "/topic/lecturer/" + lecturerId;
+        messagingTemplate.convertAndSend(destination, updatedDto);
+
+        return updatedDto;
     }
 
     @Override

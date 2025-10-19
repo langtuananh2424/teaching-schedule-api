@@ -10,29 +10,24 @@ import org.mapstruct.Named;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring") // Đảm bảo Spring có thể inject
+@Mapper(componentModel = "spring")
 public interface LecturerMapper {
 
-    /**
-     * Chuyển đổi từ Lecturer (Entity) sang LecturerDTO (dữ liệu trả về cho client).
-     */
     @Mapping(source = "lecturerId", target = "id")
-    @Mapping(source = "department.departmentId", target = "departmentId") // Lấy ID từ đối tượng Department
-    @Mapping(source = "department.departmentName", target = "departmentName") // Lấy tên từ đối tượng Department
+    @Mapping(source = "department.departmentId", target = "departmentId")
+    @Mapping(source = "department.departmentName", target = "departmentName")
     LecturerDTO toDto(Lecturer lecturer);
 
-    /**
-     * Chuyển đổi một danh sách Lecturer (Entity) sang danh sách LecturerDTO.
-     */
     List<LecturerDTO> toDtoList(List<Lecturer> lecturers);
 
     /**
-     * Chuyển đổi từ CreateLecturerRequestDTO (dữ liệu đầu vào) sang Lecturer (Entity).
+     * Chuyển đổi từ CreateLecturerRequestDTO sang Lecturer.
      * Bỏ qua các trường phức tạp sẽ được xử lý thủ công trong service.
      */
-    @Mapping(target = "password", ignore = true) // Mật khẩu sẽ được mã hóa và set trong service
-    @Mapping(target = "department", ignore = true) // Department sẽ được tìm và set trong service
-    @Mapping(target = "lecturerId", ignore = true) // ID sẽ do database tự tạo
-    @Mapping(target = "assignments", ignore = true) // Bỏ qua các mối quan hệ khác
+    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "department", ignore = true)
+    @Mapping(target = "lecturerId", ignore = true)
+    @Mapping(target = "assignments", ignore = true)
+    @Mapping(target = "role", ignore = true) // [SỬA LỖI] Yêu cầu Mapper bỏ qua trường này
     Lecturer fromCreateDtoToEntity(CreateLecturerRequestDTO createDto);
 }

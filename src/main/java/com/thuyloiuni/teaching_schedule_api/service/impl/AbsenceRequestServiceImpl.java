@@ -64,7 +64,7 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         AbsenceRequest savedRequest = absenceRequestRepository.save(newRequest);
         AbsenceRequestDTO createdDto = absenceRequestMapper.toDto(savedRequest);
 
-        // Gửi thông báo qua WebSocket
+        // Gửi thông báo đến admin
         messagingTemplate.convertAndSend("/topic/new-request", createdDto);
 
         return createdDto;
@@ -83,7 +83,14 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         request.setApprover(approver);
 
         AbsenceRequest updatedRequest = absenceRequestRepository.save(request);
-        return absenceRequestMapper.toDto(updatedRequest);
+        AbsenceRequestDTO updatedDto = absenceRequestMapper.toDto(updatedRequest);
+
+        // Gửi thông báo đến giảng viên đã tạo yêu cầu
+        Integer lecturerId = request.getLecturer().getLecturerId();
+        String destination = "/topic/lecturer/" + lecturerId;
+        messagingTemplate.convertAndSend(destination, updatedDto);
+
+        return updatedDto;
     }
 
     @Override
