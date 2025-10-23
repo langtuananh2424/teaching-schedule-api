@@ -37,6 +37,61 @@ components:
         fullName: { type: string }
         classId: { type: integer }
 
+    # --- DTOs Xin nghỉ & Dạy bù ---
+    CreateAbsenceRequestDTO:
+      type: object
+      description: DTO để tạo một đơn xin nghỉ, có thể kèm theo đề xuất dạy bù.
+      properties:
+        sessionId:
+          type: integer
+          description: ID của buổi học gốc xin nghỉ.
+        lecturerId:
+          type: integer
+          description: ID của giảng viên tạo đơn.
+        reason:
+          type: string
+          description: Lý do xin nghỉ.
+        makeupDate:
+          type: string
+          format: date-time
+          description: (Tùy chọn) Ngày đề xuất dạy bù.
+        makeupStartPeriod:
+          type: integer
+          description: (Tùy chọn) Tiết bắt đầu của buổi dạy bù.
+        makeupEndPeriod:
+          type: integer
+          description: (Tùy chọn) Tiết kết thúc của buổi dạy bù.
+        makeupClassroom:
+          type: string
+          description: (Tùy chọn) Phòng học đề xuất cho buổi dạy bù.
+    ApproveAbsenceRequestDTO:
+      type: object
+      properties:
+        approverId: { type: integer }
+        newStatus: { type: string, enum: [APPROVED, REJECTED] }
+    AbsenceRequestDTO:
+      type: object
+      description: DTO chi tiết trả về cho một đơn xin nghỉ.
+      properties:
+        id: { type: integer }
+        requestType: { type: string, example: "Xin nghỉ dạy" }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+        approverName: { type: string, nullable: true }
+        lecturerName: { type: string }
+        subjectName: { type: string }
+        className: { type: string }
+        sessionDate: { type: string, format: date }
+        startPeriod: { type: integer }
+        endPeriod: { type: integer }
+        classroom: { type: string }
+        makeupCreatedAt: { type: string, format: date-time, nullable: true }
+        makeupDate: { type: string, format: date, nullable: true }
+        makeupStartPeriod: { type: integer, nullable: true }
+        makeupEndPeriod: { type: integer, nullable: true }
+        makeupClassroom: { type: string, nullable: true }
+
     # DTOs cho việc hiển thị
     DepartmentDTO:
       type: object
@@ -248,3 +303,78 @@ paths:
       parameters: [ { name: classId, in: path, required: true, schema: { type: integer } } ]
       responses:
         '200': { description: Danh sách sinh viên trong lớp }
+
+  # --- Absence Request Endpoints ---
+  /api/absence-requests:
+    get:
+      tags: [Absence Request]
+      summary: Lấy danh sách tất cả đơn xin nghỉ
+      description: Trả về danh sách chi tiết các đơn xin nghỉ, bao gồm thông tin buổi học và lịch dạy bù (nếu có).
+      responses:
+        '200':
+          description: Danh sách các đơn xin nghỉ.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AbsenceRequestDTO'
+    post:
+      tags: [Absence Request]
+      summary: Tạo một đơn xin nghỉ (có thể kèm dạy bù)
+      description: API cho phép tạo một đơn xin nghỉ và tùy chọn đề xuất lịch dạy bù ngay lập tức.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAbsenceRequestDTO'
+      responses:
+        '201':
+          description: Tạo đơn thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenceRequestDTO'
+
+  /api/absence-requests/{id}:
+    get:
+      tags: [Absence Request]
+      summary: Lấy chi tiết một đơn xin nghỉ theo ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Chi tiết đơn xin nghỉ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenceRequestDTO'
+
+  /api/absence-requests/{id}/approve:
+    patch:
+      tags: [Absence Request]
+      summary: Duyệt một đơn xin nghỉ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveAbsenceRequestDTO'
+      responses:
+        '200':
+          description: Cập nhật trạng thái đơn thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenceRequestDTO'

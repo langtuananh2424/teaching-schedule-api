@@ -12,3 +12,6 @@ Code tạo database ở file teaching schedule.sql
 Chạy các lệnh sau:  
 mvn clean install  
 mvn spring-boot:run  
+
+# Chạy docker
+docker-compose up --build -d
