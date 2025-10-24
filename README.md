@@ -11,7 +11,10 @@ Code tạo database ở file teaching schedule.sql
 # Cách khởi động
 Chạy các lệnh sau:  
 mvn clean install  
-mvn spring-boot:run  
+mvn spring-boot:run
 
 # Chạy docker
 docker-compose up --build -d
+
+# Push docker
+docker push tyr24/teaching-schedule-api-app:latest

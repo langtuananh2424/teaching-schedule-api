@@ -9,10 +9,13 @@ services:
     depends_on:
       - db
     environment:
+      # Kích hoạt profile "docker" khi chạy container
+      - SPRING_PROFILES_ACTIVE=docker 
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/teaching_schedule_db?useSSL=false
       - SPRING_DATASOURCE_USERNAME=app_user
       - SPRING_DATASOURCE_PASSWORD=user123456
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
   db:
     image: mysql:8.0
     restart: always
@@ -27,5 +30,6 @@ services:
       - db_data:/var/lib/mysql
     ports:
       - "3307:3306"
+
 volumes:
   db_data:

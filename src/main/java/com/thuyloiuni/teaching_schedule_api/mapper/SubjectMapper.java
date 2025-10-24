@@ -8,39 +8,36 @@ import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring") // Đảm bảo Spring có thể inject mapper này vào service
+@Mapper(componentModel = "spring")
 public interface SubjectMapper {
 
     SubjectMapper INSTANCE = Mappers.getMapper(SubjectMapper.class);
 
     /**
      * Chuyển đổi từ Subject (Entity) sang SubjectDTO.
-     * @param subject Đối tượng Entity.
-     * @return Đối tượng DTO.
      */
     @Mapping(source = "subjectId", target = "id")
     @Mapping(source = "subjectCode", target = "subjectCode")
     @Mapping(source = "subjectName", target = "subjectName")
     @Mapping(source = "credits", target = "credits")
+    // Ánh xạ thông tin từ đối tượng Department lồng trong Subject
+    @Mapping(source = "department.departmentId", target = "departmentId")
+    @Mapping(source = "department.departmentName", target = "departmentName")
     SubjectDTO toDto(Subject subject);
 
     /**
      * Chuyển đổi từ SubjectDTO sang Subject (Entity).
-     * @param subjectDTO Đối tượng DTO.
-     * @return Đối tượng Entity.
+     * Việc set đối tượng Department sẽ được xử lý ở tầng Service.
      */
     @Mapping(target = "subjectId", source = "id")
     @Mapping(target = "subjectCode", source = "subjectCode")
     @Mapping(target = "subjectName", source = "subjectName")
     @Mapping(target = "credits", source = "credits")
-    // Không cần map các mối quan hệ phức tạp ở đây vì Subject là một entity đơn giản.
+    @Mapping(target = "department", ignore = true) // Bỏ qua việc ánh xạ Department ở đây
     Subject toEntity(SubjectDTO subjectDTO);
 
     /**
      * Chuyển đổi một danh sách Subject (Entity) sang danh sách SubjectDTO.
-     * MapStruct sẽ tự động sử dụng phương thức toDto ở trên cho mỗi phần tử.
-     * @param subjects Danh sách Entity.
-     * @return Danh sách DTO.
      */
     List<SubjectDTO> toDtoList(List<Subject> subjects);
 }
