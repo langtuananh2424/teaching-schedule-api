@@ -9,8 +9,9 @@ services:
     depends_on:
       - db
     environment:
-      # Kích hoạt profile "docker" khi chạy container
-      - SPRING_PROFILES_ACTIVE=docker 
+      # Kích hoạt cả 2 profile 'docker' và 'local' để sinh dữ liệu giả
+      # Khi cần môi trường sạch, chỉ cần xóa ',local' đi.
+      - SPRING_PROFILES_ACTIVE=docker,local 
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/teaching_schedule_db?useSSL=false
       - SPRING_DATASOURCE_USERNAME=app_user
       - SPRING_DATASOURCE_PASSWORD=user123456

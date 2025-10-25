@@ -9,10 +9,15 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface MakeupSessionMapper {
 
-    // Ánh xạ các trường lồng nhau
-    @Mapping(source = "absentRequest.sessionId", target = "absentSessionId")
-    @Mapping(source = "approver.lecturerId", target = "approverId") // Có thể null
-    @Mapping(source = "approver.fullName", target = "approverName") // Có thể null
+    @Mapping(source = "makeupSessionId", target = "makeupSessionId")
+    @Mapping(source = "absentSchedule.sessionId", target = "absentSessionId")
+    @Mapping(source = "makeupDate", target = "makeupDate")
+    @Mapping(source = "makeupStartPeriod", target = "makeupStartPeriod")
+    @Mapping(source = "makeupEndPeriod", target = "makeupEndPeriod")
+    @Mapping(source = "makeupClassroom", target = "makeupClassroom")
+    @Mapping(source = "createdAt", target = "createdAt")
+    @Mapping(source = "departmentApproval", target = "departmentStatus")
+    @Mapping(source = "ctsvApproval", target = "ctsvStatus")
     MakeupSessionDTO toDto(MakeupSession makeupSession);
 
     List<MakeupSessionDTO> toDtoList(List<MakeupSession> makeupSessions);

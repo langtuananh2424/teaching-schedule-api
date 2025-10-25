@@ -1,43 +1,44 @@
 package com.thuyloiuni.teaching_schedule_api.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.model.ApprovalStatus;
 import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * DTO này chứa thông tin đầy đủ về một đơn xin nghỉ phép,
- * kết hợp thông tin từ buổi học gốc và đề xuất dạy bù (nếu có).
+ * DTO for representing an absence request with detailed approval statuses.
  */
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL) // Các trường null sẽ không được trả về trong JSON
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AbsenceRequestDTO {
 
-    // ---- Thông tin chung của đơn ----
+    // ---- Request Information ----
     private Integer id;
-    private final String requestType = "Xin nghỉ dạy"; // Loại đề xuất
-    private String reason;                             // Lý do xin nghỉ
-    private LocalDateTime createdAt;                   // Thời gian tạo đơn
-    private ApprovalStatus status;                     // Trạng thái duyệt
-    private String approverName;                       // Tên người duyệt
+    private final String requestType = "Xin nghỉ dạy";
+    private String reason;
+    private LocalDateTime createdAt;
 
-    // ---- Thông tin giảng viên xin nghỉ ----
-    private String lecturerName;                       // Tên giảng viên
+    // --- New Approval Statuses ---
+    private ApprovalStatus departmentStatus; // Department's approval status
+    private ApprovalStatus ctsvStatus;       // CTSV's approval status
 
-    // ---- Thông tin buổi học gốc xin nghỉ ----
-    private String subjectName;                        // Tên môn học
-    private String className;                          // Tên lớp học
-    private LocalDate sessionDate;                     // Ngày học
-    private Integer startPeriod;                       // Tiết bắt đầu
-    private Integer endPeriod;                         // Tiết kết thúc
-    private String classroom;                          // Phòng học gốc
+    // ---- Lecturer Information ----
+    private String lecturerName;
 
-    // ---- Thông tin buổi dạy bù được đề xuất (sẽ là null nếu chưa có) ----
-    private LocalDateTime makeupCreatedAt;             // Thời gian đăng ký dạy bù
-    private LocalDate makeupDate;                      // Ngày đề xuất dạy bù
-    private Integer makeupStartPeriod;                 // Tiết bắt đầu đề xuất
-    private Integer makeupEndPeriod;                   // Tiết kết thúc đề xuất
-    private String makeupClassroom;                    // Phòng học đề xuất
+    // ---- Original Session Information ----
+    private String subjectName;
+    private String className;
+    private LocalDate sessionDate;
+    private Integer startPeriod;
+    private Integer endPeriod;
+    private String classroom;
+
+    // ---- Proposed Makeup Session (optional) ----
+    private LocalDateTime makeupCreatedAt;
+    private LocalDate makeupDate;
+    private Integer makeupStartPeriod;
+    private Integer makeupEndPeriod;
+    private String makeupClassroom;
 }

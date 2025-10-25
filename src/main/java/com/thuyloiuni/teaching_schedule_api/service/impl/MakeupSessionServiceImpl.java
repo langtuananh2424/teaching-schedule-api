@@ -1,15 +1,12 @@
 package com.thuyloiuni.teaching_schedule_api.service.impl;
 
-import com.thuyloiuni.teaching_schedule_api.dto.ApproveMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.MakeupSessionDTO;
-import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
+import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.MakeupSession;
 import com.thuyloiuni.teaching_schedule_api.entity.Schedule;
-import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
 import com.thuyloiuni.teaching_schedule_api.mapper.MakeupSessionMapper;
-import com.thuyloiuni.teaching_schedule_api.repository.LecturerRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.MakeupSessionRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
 import com.thuyloiuni.teaching_schedule_api.service.MakeupSessionService;
@@ -19,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,42 +24,41 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
 
     private final MakeupSessionRepository makeupSessionRepository;
     private final ScheduleRepository scheduleRepository;
-    private final LecturerRepository lecturerRepository;
     private final MakeupSessionMapper makeupSessionMapper;
     private final SimpMessageSendingOperations messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
     public List<MakeupSessionDTO> getAllMakeupSessions() {
-        return makeupSessionMapper.toDtoList(makeupSessionRepository.findAll());
+        return makeupSessionRepository.findAll().stream()
+                .map(this::mapToDtoWithDetails)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public MakeupSessionDTO getMakeupSessionById(Integer id) {
-        return makeupSessionRepository.findById(id)
-                .map(makeupSessionMapper::toDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi dạy bù với ID: " + id));
+        MakeupSession session = findSessionById(id);
+        return mapToDtoWithDetails(session);
     }
 
     @Override
     @Transactional
     public MakeupSessionDTO createMakeupSession(CreateMakeupSessionDTO createDto) {
         Schedule absentSchedule = scheduleRepository.findById(createDto.getAbsentSessionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học đã nghỉ với ID: " + createDto.getAbsentSessionId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Absent schedule not found with ID: " + createDto.getAbsentSessionId()));
 
         MakeupSession newSession = new MakeupSession();
-        newSession.setAbsentRequest(absentSchedule);
+        newSession.setAbsentSchedule(absentSchedule);
         newSession.setMakeupDate(createDto.getMakeupDate());
         newSession.setMakeupStartPeriod(createDto.getMakeupStartPeriod());
         newSession.setMakeupEndPeriod(createDto.getMakeupEndPeriod());
         newSession.setMakeupClassroom(createDto.getMakeupClassroom());
-        newSession.setApprovalStatus(ApprovalStatus.PENDING);
+        // Default statuses are set by @PrePersist in the entity
 
         MakeupSession savedSession = makeupSessionRepository.save(newSession);
-        MakeupSessionDTO createdDto = makeupSessionMapper.toDto(savedSession);
+        MakeupSessionDTO createdDto = mapToDtoWithDetails(savedSession);
 
-        // Gửi thông báo đến admin
         messagingTemplate.convertAndSend("/topic/new-makeup-request", createdDto);
 
         return createdDto;
@@ -69,32 +66,42 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
 
     @Override
     @Transactional
-    public MakeupSessionDTO approveMakeupSession(Integer id, ApproveMakeupSessionDTO approveDto) {
-        MakeupSession session = makeupSessionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi dạy bù với ID: " + id));
+    public MakeupSessionDTO updateDepartmentApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
+        MakeupSession session = findSessionById(id);
+        session.setDepartmentApproval(statusDto.getStatus());
+        return updateAndNotify(session);
+    }
 
-        Lecturer approver = lecturerRepository.findById(approveDto.getApproverId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người duyệt với ID: " + approveDto.getApproverId()));
+    @Override
+    @Transactional
+    public MakeupSessionDTO updateCtsvApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
+        MakeupSession session = findSessionById(id);
+        session.setCtsvApproval(statusDto.getStatus());
+        return updateAndNotify(session);
+    }
 
-        session.setApprovalStatus(approveDto.getNewStatus());
-        session.setApprover(approver);
+    // Helper methods
 
+    private MakeupSession findSessionById(Integer id) {
+        return makeupSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Makeup session not found with ID: " + id));
+    }
+
+    private MakeupSessionDTO updateAndNotify(MakeupSession session) {
         MakeupSession updatedSession = makeupSessionRepository.save(session);
-        MakeupSessionDTO updatedDto = makeupSessionMapper.toDto(updatedSession);
+        MakeupSessionDTO updatedDto = mapToDtoWithDetails(updatedSession);
 
-        // Gửi thông báo đến giảng viên đã tạo yêu cầu
-        // Giảng viên tạo yêu cầu dạy bù chính là giảng viên của buổi học đã nghỉ
-        Integer lecturerId = session.getAbsentRequest().getAssignment().getLecturer().getLecturerId();
-        String destination = "/topic/lecturer/" + lecturerId;
-        messagingTemplate.convertAndSend(destination, updatedDto);
+        // Notify the lecturer who owns the original schedule
+        Integer lecturerId = session.getAbsentSchedule().getAssignment().getLecturer().getLecturerId();
+        messagingTemplate.convertAndSend("/topic/lecturer/" + lecturerId, updatedDto);
 
         return updatedDto;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<MakeupSessionDTO> getMakeupSessionsByStatus(ApprovalStatus status) {
-        List<MakeupSession> sessions = makeupSessionRepository.findByApprovalStatus(status);
-        return makeupSessionMapper.toDtoList(sessions);
+    private MakeupSessionDTO mapToDtoWithDetails(MakeupSession session) {
+        MakeupSessionDTO dto = makeupSessionMapper.toDto(session);
+        dto.setDepartmentStatus(session.getDepartmentApproval());
+        dto.setCtsvStatus(session.getCtsvApproval());
+        return dto;
     }
 }

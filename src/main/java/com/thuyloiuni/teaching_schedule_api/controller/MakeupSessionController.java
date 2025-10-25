@@ -1,10 +1,11 @@
 package com.thuyloiuni.teaching_schedule_api.controller;
 
-import com.thuyloiuni.teaching_schedule_api.dto.ApproveMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.MakeupSessionDTO;
-import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
 import com.thuyloiuni.teaching_schedule_api.service.MakeupSessionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,56 +18,50 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/makeup-sessions")
 @RequiredArgsConstructor
+@Tag(name = "Makeup Session", description = "Endpoints for managing makeup teaching sessions")
 public class MakeupSessionController {
 
     private final MakeupSessionService makeupSessionService;
 
-    /**
-     * Lấy tất cả các đăng ký dạy bù, có thể lọc theo trạng thái.
-     * Chỉ ADMIN có quyền xem tất cả.
-     */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<MakeupSessionDTO>> getAllMakeupSessions(
-            @RequestParam(required = false) ApprovalStatus status) {
-        List<MakeupSessionDTO> sessions;
-        if (status != null) {
-            sessions = makeupSessionService.getMakeupSessionsByStatus(status);
-        } else {
-            sessions = makeupSessionService.getAllMakeupSessions();
-        }
-        return ResponseEntity.ok(sessions);
+    @Operation(summary = "Get all makeup sessions", description = "Retrieves a list of all makeup sessions. Accessible only by ADMIN.")
+    public ResponseEntity<List<MakeupSessionDTO>> getAllMakeupSessions() {
+        return ResponseEntity.ok(makeupSessionService.getAllMakeupSessions());
     }
 
-    /**
-     * Lấy một đăng ký dạy bù cụ thể theo ID.
-     * Cả ADMIN và LECTURER đều có thể xem.
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @Operation(summary = "Get makeup session by ID", description = "Retrieves a single makeup session by its ID.")
     public ResponseEntity<MakeupSessionDTO> getMakeupSessionById(@PathVariable Integer id) {
         return ResponseEntity.ok(makeupSessionService.getMakeupSessionById(id));
     }
 
-    /**
-     * Giảng viên tạo một đăng ký dạy bù mới.
-     */
     @PostMapping
     @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Create a new makeup session request", description = "Allows a LECTURER to submit a new request for a makeup session.")
     public ResponseEntity<MakeupSessionDTO> createMakeupSession(@Valid @RequestBody CreateMakeupSessionDTO createDto) {
         MakeupSessionDTO createdSession = makeupSessionService.createMakeupSession(createDto);
         return new ResponseEntity<>(createdSession, HttpStatus.CREATED);
     }
 
-    /**
-     * ADMIN duyệt một đăng ký dạy bù.
-     */
-    @PatchMapping("/{id}/approve")
+    @PatchMapping("/{id}/department-approval")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<MakeupSessionDTO> approveMakeupSession(
+    @Operation(summary = "Update department approval for a makeup session", description = "Sets the approval status (APPROVED or REJECTED) for the Department level.")
+    public ResponseEntity<MakeupSessionDTO> updateDepartmentApproval(
             @PathVariable Integer id,
-            @Valid @RequestBody ApproveMakeupSessionDTO approveDto) {
-        MakeupSessionDTO updatedSession = makeupSessionService.approveMakeupSession(id, approveDto);
+            @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
+        MakeupSessionDTO updatedSession = makeupSessionService.updateDepartmentApproval(id, statusDto);
+        return ResponseEntity.ok(updatedSession);
+    }
+
+    @PatchMapping("/{id}/ctsv-approval")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update CTSV approval for a makeup session", description = "Sets the approval status (APPROVED or REJECTED) for the CTSV level.")
+    public ResponseEntity<MakeupSessionDTO> updateCtsvApproval(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
+        MakeupSessionDTO updatedSession = makeupSessionService.updateCtsvApproval(id, statusDto);
         return ResponseEntity.ok(updatedSession);
     }
 }

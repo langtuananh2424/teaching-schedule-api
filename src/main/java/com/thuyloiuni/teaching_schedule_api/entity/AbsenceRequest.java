@@ -1,42 +1,28 @@
 package com.thuyloiuni.teaching_schedule_api.entity;
 
-import java.time.LocalDateTime;
-
-import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import com.thuyloiuni.teaching_schedule_api.model.ApprovalStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "absencerequests")
+@Table(name = "absence_requests") // Corrected table name
 public class AbsenceRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "request_id")
     private Integer requestId;
 
-    @OneToOne(fetch= FetchType.LAZY)
-    @JoinColumn(name = "session_id", referencedColumnName= "session_id", unique= true)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", referencedColumnName = "session_id", unique = true)
     private Schedule schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,13 +34,28 @@ public class AbsenceRequest {
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(name= "approval_status", nullable = false, length = 50)
-    private ApprovalStatus approvalStatus;
+    @Column(name = "department_approval", nullable = false)
+    private ApprovalStatus departmentApproval;
 
-    @Column(name= "created_at", nullable = false, columnDefinition = "DATETIME")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ctsv_approval", nullable = false) // CTSV stands for "Công tác Sinh viên"
+    private ApprovalStatus ctsvApproval;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_id")
-    private Lecturer approver;
+    // The 'approver' field is removed as there are now multiple approval levels.
+    // You can add separate fields for department_approver_id and ctsv_approver_id if needed.
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        // Set default approval statuses on creation
+        if (departmentApproval == null) {
+            departmentApproval = ApprovalStatus.PENDING;
+        }
+        if (ctsvApproval == null) {
+            ctsvApproval = ApprovalStatus.PENDING;
+        }
+    }
 }
