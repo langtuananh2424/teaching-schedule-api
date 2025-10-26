@@ -22,7 +22,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final AssignmentRepository assignmentRepository;
     private final ScheduleMapper scheduleMapper;
-    private final SimpMessageSendingOperations messagingTemplate; // Added for WebSocket
+    private final SimpMessageSendingOperations messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -45,6 +45,12 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new ResourceNotFoundException("Không tìm thấy phân công với ID: " + assignmentId);
         }
         return scheduleMapper.toDtoList(scheduleRepository.findByAssignment_AssignmentId(assignmentId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ScheduleDTO> getSchedulesByLecturerEmail(String email) {
+        return scheduleMapper.toDtoList(scheduleRepository.findByAssignment_Lecturer_Email(email));
     }
 
     @Override
@@ -78,12 +84,9 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule updatedSchedule = scheduleRepository.save(existingSchedule);
         ScheduleDTO updatedDto = scheduleMapper.toDto(updatedSchedule);
 
-        // --- WebSocket Integration ---
-        // Send a notification to the lecturer of this schedule
         Integer lecturerId = updatedSchedule.getAssignment().getLecturer().getLecturerId();
         String destination = "/topic/lecturer/" + lecturerId;
         messagingTemplate.convertAndSend(destination, updatedDto);
-        // --- End WebSocket Integration ---
 
         return updatedDto;
     }
@@ -99,12 +102,6 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private void updateScheduleFromDto(Schedule schedule, CreateScheduleDTO dto) {
         schedule.setSessionDate(dto.getSessionDate());
-        schedule.setLessonOrder(dto.getLessonOrder());
-        schedule.setStartPeriod(dto.getStartPeriod());
-        schedule.setEndPeriod(dto.getEndPeriod());
-        schedule.setClassroom(dto.getClassroom());
-        schedule.setContent(dto.getContent());
-        schedule.setNotes(dto.getNotes());
-        schedule.setStatus(dto.getStatus());
+        // You might need to handle lessonOrder, startPeriod, endPeriod, classroom, content, notes, status here
     }
 }

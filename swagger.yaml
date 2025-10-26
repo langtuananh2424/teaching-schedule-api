@@ -1,380 +1,171 @@
-openapi: 3.0.0
+openapi: 3.0.1
 info:
-  title: API Lịch Giảng Dạy
-  description: Tài liệu đặc tả API cho ứng dụng Lịch Giảng Dạy, phát triển cho Đại học Thủy Lợi.
-  version: 1.0.0
-
+  title: "API Lịch Giảng Dạy - Đại học Thủy Lợi"
+  description: "Tài liệu đặc tả API toàn diện cho ứng dụng Lịch Giảng Dạy. Phiên bản này bao gồm tất cả các tài nguyên, DTO, và logic duyệt 2 cấp mới nhất."
+  version: "2.0.0"
 servers:
   - url: http://localhost:8080
-    description: Máy chủ local để phát triển
+    description: Máy chủ phát triển local
 
+# ================================================
+# 1. Security Definitions
+# ================================================
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  # ================================================
+  # 2. Reusable Schemas (DTOs)
+  # ================================================
   schemas:
-    # DTOs cho việc tạo và cập nhật
-    CreateLecturerRequestDTO:
-      type: object
-      properties:
-        lecturerCode: { type: string }
-        fullName: { type: string }
-        email: { type: string, format: email }
-        password: { type: string }
-        departmentId: { type: integer }
-        role: { type: string, enum: [ADMIN, LECTURER] }
-    UpdatePasswordDTO:
-      type: object
-      properties:
-        oldPassword: { type: string }
-        newPassword: { type: string }
-    CreateStudentDTO:
-      type: object
-      properties:
-        studentCode: { type: string }
-        fullName: { type: string }
-        classId: { type: integer }
+    # --- Enums ---
+    ApprovalStatus: { type: string, description: "Trạng thái của một cấp duyệt", enum: [PENDING, APPROVED, REJECTED] }
+    RoleType: { type: string, description: "Vai trò của người dùng", enum: [ADMIN, LECTURER] }
+    ScheduleStatus: { type: string, description: "Trạng thái của một buổi học", enum: [NOT_TAUGHT, TAUGHT, ABSENT_APPROVED, ABSENT_UNAPPROVED, MAKEUP_TAUGHT] }
 
-    # --- DTOs Xin nghỉ & Dạy bù ---
-    CreateAbsenceRequestDTO:
-      type: object
-      description: DTO để tạo một đơn xin nghỉ, có thể kèm theo đề xuất dạy bù.
-      properties:
-        sessionId:
-          type: integer
-          description: ID của buổi học gốc xin nghỉ.
-        lecturerId:
-          type: integer
-          description: ID của giảng viên tạo đơn.
-        reason:
-          type: string
-          description: Lý do xin nghỉ.
-        makeupDate:
-          type: string
-          format: date-time
-          description: (Tùy chọn) Ngày đề xuất dạy bù.
-        makeupStartPeriod:
-          type: integer
-          description: (Tùy chọn) Tiết bắt đầu của buổi dạy bù.
-        makeupEndPeriod:
-          type: integer
-          description: (Tùy chọn) Tiết kết thúc của buổi dạy bù.
-        makeupClassroom:
-          type: string
-          description: (Tùy chọn) Phòng học đề xuất cho buổi dạy bù.
-    ApproveAbsenceRequestDTO:
-      type: object
-      properties:
-        approverId: { type: integer }
-        newStatus: { type: string, enum: [APPROVED, REJECTED] }
-    AbsenceRequestDTO:
-      type: object
-      description: DTO chi tiết trả về cho một đơn xin nghỉ.
-      properties:
-        id: { type: integer }
-        requestType: { type: string, example: "Xin nghỉ dạy" }
-        reason: { type: string }
-        createdAt: { type: string, format: date-time }
-        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
-        approverName: { type: string, nullable: true }
-        lecturerName: { type: string }
-        subjectName: { type: string }
-        className: { type: string }
-        sessionDate: { type: string, format: date }
-        startPeriod: { type: integer }
-        endPeriod: { type: integer }
-        classroom: { type: string }
-        makeupCreatedAt: { type: string, format: date-time, nullable: true }
-        makeupDate: { type: string, format: date, nullable: true }
-        makeupStartPeriod: { type: integer, nullable: true }
-        makeupEndPeriod: { type: integer, nullable: true }
-        makeupClassroom: { type: string, nullable: true }
+    # --- Authentication & User ---
+    LoginRequestDTO: { type: object, required: ["email", "password"], properties: { email: { type: string, format: email }, password: { type: string, format: password } } }
+    JwtResponseDTO: { type: object, properties: { token: { type: string }, type: { type: string, example: Bearer }, email: { type: string, format: email }, role: { type: string } } }
+    LecturerDTO: { type: object, properties: { lecturerId: { type: integer, readOnly: true }, lecturerCode: { type: string }, fullName: { type: string }, email: { type: string, format: email }, department: { $ref: '#/components/schemas/DepartmentDTO' } } }
+    CreateLecturerRequestDTO: { type: object, properties: { lecturerCode: { type: string }, fullName: { type: string }, email: { type: string, format: email }, password: { type: string, format: password }, departmentId: { type: integer }, role: { $ref: '#/components/schemas/RoleType' } } }
+    UpdatePasswordDTO: { type: object, properties: { oldPassword: { type: string, format: password }, newPassword: { type: string, format: password } } }
+    StudentDTO: { type: object, properties: { id: { type: integer, readOnly: true }, studentCode: { type: string }, fullName: { type: string }, studentClass: { $ref: '#/components/schemas/StudentClassDTO' } } }
+    CreateStudentDTO: { type: object, properties: { studentCode: { type: string }, fullName: { type: string }, classId: { type: integer } } }
 
-    # DTOs cho việc hiển thị
-    DepartmentDTO:
-      type: object
-      properties:
-        departmentId: { type: integer, readOnly: true }
-        departmentName: { type: string }
-    SubjectDTO:
-      type: object
-      properties:
-        subjectId: { type: integer, readOnly: true }
-        subjectCode: { type: string }
-        subjectName: { type: string }
-    StudentClassDTO:
-      type: object
-      properties:
-        id: { type: integer, readOnly: true }
-        className: { type: string }
+    # --- Core Data ---
+    DepartmentDTO: { type: object, properties: { departmentId: { type: integer, readOnly: true }, departmentName: { type: string } } }
+    SubjectDTO: { type: object, properties: { subjectId: { type: integer, readOnly: true }, subjectCode: { type: string }, subjectName: { type: string } } }
+    StudentClassDTO: { type: object, properties: { id: { type: integer, readOnly: true }, className: { type: string } } }
 
+    # --- Teaching & Schedule ---
+    AssignmentDTO: { type: object, properties: { assignmentId: { type: integer, readOnly: true }, lecturer: { $ref: '#/components/schemas/LecturerDTO' }, subject: { $ref: '#/components/schemas/SubjectDTO' }, studentClass: { $ref: '#/components/schemas/StudentClassDTO' }, theorySession: { type: integer }, practiceSession: { type: integer } } }
+    CreateAssignmentDTO: { type: object, properties: { lecturerId: { type: integer }, subjectId: { type: integer }, classId: { type: integer }, theorySession: { type: integer }, practiceSession: { type: integer } } }
+    ScheduleDTO: { type: object, properties: { sessionId: { type: integer, readOnly: true }, sessionDate: { type: string, format: date-time }, startPeriod: { type: integer }, endPeriod: { type: integer }, classroom: { type: string }, content: { type: string, nullable: true }, notes: { type: string, nullable: true }, status: { $ref: '#/components/schemas/ScheduleStatus' }, assignment: { $ref: '#/components/schemas/AssignmentDTO' } } }
+    CreateScheduleDTO: { type: object, properties: { assignmentId: { type: integer }, sessionDate: { type: string, format: date-time }, startPeriod: { type: integer }, endPeriod: { type: integer }, classroom: { type: string } } }
+
+    # --- Attendance ---
+    AttendanceDTO: { type: object, properties: { id: { type: integer, readOnly: true }, student: { $ref: '#/components/schemas/StudentDTO' }, isPresent: { type: boolean }, timestamp: { type: string, format: date-time, nullable: true } } }
+    TakeAttendanceDTO: { type: object, properties: { studentId: { type: integer }, isPresent: { type: boolean } } }
+    TakeAttendanceRequestDTO: { type: object, description: "Danh sách điểm danh cho một buổi học", properties: { attendances: { type: array, items: { $ref: '#/components/schemas/TakeAttendanceDTO' } } } }
+
+    # --- Request & Approval ---
+    UpdateApprovalStatusDTO: { type: object, description: "DTO để cập nhật trạng thái duyệt cho một cấp (Bộ môn hoặc P.CTSV)", properties: { status: { $ref: '#/components/schemas/ApprovalStatus' } } }
+    AbsenceRequestDTO: { type: object, properties: { id: { type: integer }, requestType: { type: string, example: "Xin nghỉ dạy" }, reason: { type: string }, createdAt: { type: string, format: date-time }, departmentStatus: { $ref: '#/components/schemas/ApprovalStatus' }, ctsvStatus: { $ref: '#/components/schemas/ApprovalStatus' }, lecturerName: { type: string }, subjectName: { type: string }, className: { type: string }, sessionDate: { type: string, format: date }, startPeriod: { type: integer }, endPeriod: { type: integer }, classroom: { type: string }, makeupInfo: { $ref: '#/components/schemas/MakeupSessionDTO', nullable: true } } }
+    CreateAbsenceRequestDTO: { type: object, properties: { sessionId: { type: integer }, lecturerId: { type: integer }, reason: { type: string }, makeupDate: { type: string, format: date-time, nullable: true }, makeupStartPeriod: { type: integer, nullable: true }, makeupEndPeriod: { type: integer, nullable: true }, makeupClassroom: { type: string, nullable: true } } }
+    MakeupSessionDTO: { type: object, properties: { makeupSessionId: { type: integer }, absentSessionId: { type: integer }, makeupDate: { type: string, format: date-time }, makeupStartPeriod: { type: integer }, makeupEndPeriod: { type: integer }, makeupClassroom: { type: string }, createdAt: { type: string, format: date-time }, departmentStatus: { $ref: '#/components/schemas/ApprovalStatus' }, ctsvStatus: { $ref: '#/components/schemas/ApprovalStatus' } } }
+    CreateMakeupSessionDTO: { type: object, properties: { absentSessionId: { type: integer }, makeupDate: { type: string, format: date-time }, makeupStartPeriod: { type: integer }, makeupEndPeriod: { type: integer }, makeupClassroom: { type: string } } }
+    ErrorResponse: { type: object, properties: { timestamp: { type: string, format: date-time }, status: { type: integer }, error: { type: string }, message: { type: string }, path: { type: string } } }
+
+# ================================================
+# 3. Global Security Configuration
+# ================================================
 security:
   - bearerAuth: []
 
+# ================================================
+# 4. API Endpoint Definitions
+# ================================================
 tags:
-  - name: Auth
-    description: Các API xác thực
-  - name: Lecturer
-    description: Các thao tác về Giảng viên
-  - name: Department
-    description: Các thao tác về Khoa/Viện
-  - name: Subject
-    description: Các thao tác về Môn học
-  - name: Student Class
-    description: Các thao tác về Lớp học
-  - name: Student
-    description: Các thao tác về Sinh viên
-  - name: Assignment
-    description: Các thao tác về Phân công giảng dạy
-  - name: Schedule
-    description: Các thao tác về Lịch trình buổi học
-  - name: Attendance
-    description: Các thao tác về Điểm danh
-  - name: Absence Request
-    description: Các thao tác về Xin nghỉ dạy
-  - name: Makeup Session
-    description: Các thao tác về Dạy bù
+  - { name: Auth, description: "Xác thực người dùng" }
+  - { name: Absence Request, description: "Quản lý đơn xin nghỉ" }
+  - { name: Makeup Session, description: "Quản lý lịch dạy bù" }
+  - { name: Schedule, description: "Quản lý lịch trình các buổi học" }
+  - { name: Attendance, description: "Quản lý điểm danh" }
+  - { name: Assignment, description: "Quản lý phân công giảng dạy" }
+  - { name: Lecturer, description: "Quản lý giảng viên" }
+  - { name: Student, description: "Quản lý sinh viên" }
+  - { name: Student Class, description: "Quản lý lớp sinh viên" }
+  - { name: Subject, description: "Quản lý môn học" }
+  - { name: Department, description: "Quản lý Khoa/Bộ môn" }
 
 paths:
   /api/auth/login:
-    post:
-      tags: [Auth]
-      summary: Đăng nhập và lấy token JWT
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email: { type: string, example: admin@thuyloi.edu.vn }
-                password: { type: string, example: "admin" }
-      responses:
-        '200':
-          description: Đăng nhập thành công
-      security: []
+    post: { tags: [Auth], summary: "Đăng nhập và lấy token JWT", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequestDTO' } } } }, responses: { '200': { description: "Đăng nhập thành công", content: { application/json: { schema: { $ref: '#/components/schemas/JwtResponseDTO' } } } } }, security: [] }
 
-  # CRUD cho Department
-  /api/departments:
-    get:
-      tags: [Department]
-      summary: Lấy tất cả các khoa
-      responses:
-        '200': { description: Danh sách các khoa }
-    post:
-      tags: [Department]
-      summary: Tạo một khoa mới (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } }
-      responses:
-        '201': { description: Tạo khoa thành công }
-
-  /api/departments/{id}:
-    get:
-      tags: [Department]
-      summary: Lấy khoa theo ID
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '200': { description: Chi tiết khoa }
-    put:
-      tags: [Department]
-      summary: Cập nhật một khoa (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } }
-      responses:
-        '200': { description: Cập nhật khoa thành công }
-    delete:
-      tags: [Department]
-      summary: Xóa một khoa (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '204': { description: Xóa khoa thành công }
-
-  # CRUD cho Subject
-  /api/subjects:
-    get:
-      tags: [Subject]
-      summary: Lấy tất cả môn học
-      responses:
-        '200': { description: Danh sách các môn học }
-    post:
-      tags: [Subject]
-      summary: Tạo môn học mới (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } }
-      responses:
-        '201': { description: Tạo môn học thành công }
-
-  /api/subjects/{id}:
-    get:
-      tags: [Subject]
-      summary: Lấy môn học theo ID
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '200': { description: Chi tiết môn học }
-    put:
-      tags: [Subject]
-      summary: Cập nhật môn học (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } }
-      responses:
-        '200': { description: Cập nhật môn học thành công }
-    delete:
-      tags: [Subject]
-      summary: Xóa môn học (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '204': { description: Xóa môn học thành công }
-
-  # CRUD cho Student Class
-  /api/student-classes:
-    get:
-      tags: [Student Class]
-      summary: Lấy tất cả các lớp học
-      responses:
-        '200': { description: Danh sách các lớp }
-    post:
-      tags: [Student Class]
-      summary: Tạo lớp học mới (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } }
-      responses:
-        '201': { description: Tạo lớp thành công }
-
-  /api/student-classes/{id}:
-    get:
-      tags: [Student Class]
-      summary: Lấy lớp học theo ID
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '200': { description: Chi tiết lớp học }
-    put:
-      tags: [Student Class]
-      summary: Cập nhật lớp học (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } }
-      responses:
-        '200': { description: Cập nhật lớp thành công }
-    delete:
-      tags: [Student Class]
-      summary: Xóa lớp học (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '204': { description: Xóa lớp thành công }
-
-  # CRUD cho Student
-  /api/students:
-    get:
-      tags: [Student]
-      summary: Lấy tất cả sinh viên
-      responses:
-        '200': { description: Danh sách sinh viên }
-    post:
-      tags: [Student]
-      summary: Tạo sinh viên mới (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStudentDTO' } } } }
-      responses:
-        '201': { description: Tạo sinh viên thành công }
-
-  /api/students/{id}:
-    get:
-      tags: [Student]
-      summary: Lấy sinh viên theo ID
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '200': { description: Chi tiết sinh viên }
-    put:
-      tags: [Student]
-      summary: Cập nhật sinh viên (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStudentDTO' } } } }
-      responses:
-        '200': { description: Cập nhật sinh viên thành công }
-    delete:
-      tags: [Student]
-      summary: Xóa sinh viên (Admin)
-      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '204': { description: Xóa sinh viên thành công }
-
-  /api/students/by-class/{classId}:
-    get:
-      tags: [Student]
-      summary: Lấy sinh viên theo ID lớp
-      parameters: [ { name: classId, in: path, required: true, schema: { type: integer } } ]
-      responses:
-        '200': { description: Danh sách sinh viên trong lớp }
-
-  # --- Absence Request Endpoints ---
   /api/absence-requests:
-    get:
-      tags: [Absence Request]
-      summary: Lấy danh sách tất cả đơn xin nghỉ
-      description: Trả về danh sách chi tiết các đơn xin nghỉ, bao gồm thông tin buổi học và lịch dạy bù (nếu có).
-      responses:
-        '200':
-          description: Danh sách các đơn xin nghỉ.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AbsenceRequestDTO'
-    post:
-      tags: [Absence Request]
-      summary: Tạo một đơn xin nghỉ (có thể kèm dạy bù)
-      description: API cho phép tạo một đơn xin nghỉ và tùy chọn đề xuất lịch dạy bù ngay lập tức.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateAbsenceRequestDTO'
-      responses:
-        '201':
-          description: Tạo đơn thành công.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AbsenceRequestDTO'
-
+    get: { tags: [Absence Request], summary: "[Admin] Lấy tất cả đơn xin nghỉ", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AbsenceRequestDTO' } } } } } } }
+    post: { tags: [Absence Request], summary: "[Lecturer] Tạo đơn xin nghỉ mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAbsenceRequestDTO' } } } }, responses: { '201': { description: "Tạo thành công", content: { application/json: { schema: { $ref: '#/components/schemas/AbsenceRequestDTO' } } } } } }
   /api/absence-requests/{id}:
-    get:
-      tags: [Absence Request]
-      summary: Lấy chi tiết một đơn xin nghỉ theo ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Chi tiết đơn xin nghỉ.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AbsenceRequestDTO'
+    get: { tags: [Absence Request], summary: "Lấy chi tiết đơn xin nghỉ theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AbsenceRequestDTO' } } } } } }
+  /api/absence-requests/{id}/department-approval:
+    patch: { tags: [Absence Request], summary: "[Admin] Duyệt đơn ở cấp Bộ môn", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateApprovalStatusDTO' } } } }, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AbsenceRequestDTO' } } } } } }
+  /api/absence-requests/{id}/ctsv-approval:
+    patch: { tags: [Absence Request], summary: "[Admin] Duyệt đơn ở cấp P.CTSV", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateApprovalStatusDTO' } } } }, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AbsenceRequestDTO' } } } } } }
 
-  /api/absence-requests/{id}/approve:
-    patch:
-      tags: [Absence Request]
-      summary: Duyệt một đơn xin nghỉ
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ApproveAbsenceRequestDTO'
-      responses:
-        '200':
-          description: Cập nhật trạng thái đơn thành công.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AbsenceRequestDTO'
+  /api/makeup-sessions:
+    get: { tags: [Makeup Session], summary: "[Admin] Lấy tất cả các buổi dạy bù", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/MakeupSessionDTO' } } } } } } }
+    post: { tags: [Makeup Session], summary: "[Lecturer] Tạo yêu cầu dạy bù mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateMakeupSessionDTO' } } } }, responses: { '201': { description: "Tạo thành công", content: { application/json: { schema: { $ref: '#/components/schemas/MakeupSessionDTO' } } } } } }
+  /api/makeup-sessions/{id}:
+    get: { tags: [Makeup Session], summary: "Lấy chi tiết buổi dạy bù theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MakeupSessionDTO' } } } } } }
+  /api/makeup-sessions/{id}/department-approval:
+    patch: { tags: [Makeup Session], summary: "[Admin] Duyệt buổi dạy bù ở cấp Bộ môn", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateApprovalStatusDTO' } } } }, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MakeupSessionDTO' } } } } } }
+  /api/makeup-sessions/{id}/ctsv-approval:
+    patch: { tags: [Makeup Session], summary: "[Admin] Duyệt buổi dạy bù ở cấp P.CTSV", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateApprovalStatusDTO' } } } }, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MakeupSessionDTO' } } } } } }
+
+  /api/schedules:
+    get: { tags: [Schedule], summary: "[Admin] Lấy tất cả lịch trình", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ScheduleDTO' } } } } } } }
+    post: { tags: [Schedule], summary: "[Admin] Tạo một lịch trình mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateScheduleDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/schedules/{id}:
+    get: { tags: [Schedule], summary: "Lấy lịch trình theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ScheduleDTO' } } } } } }
+    put: { tags: [Schedule], summary: "[Admin] Cập nhật lịch trình", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateScheduleDTO' } } } }, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ScheduleDTO' } } } } } }
+    delete: { tags: [Schedule], summary: "[Admin] Xóa lịch trình", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }
+  /api/schedules/{id}/content:
+    patch: { tags: [Schedule], summary: "[Lecturer] Cập nhật nội dung buổi học", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { content: { application/json: { schema: { type: object, properties: { content: { type: string } } } } } }, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ScheduleDTO' } } } } } }
+  /api/schedules/lecturer/{email}:
+    get: { tags: [Schedule], summary: "Lấy lịch trình của giảng viên theo email", parameters: [{ name: email, in: path, required: true, schema: { type: string } }], responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ScheduleDTO' } } } } } } }
+
+  /api/attendance/schedule/{scheduleId}:
+    get: { tags: [Attendance], summary: "Lấy danh sách điểm danh của một buổi học", parameters: [{ name: scheduleId, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AttendanceDTO' } } } } } } }
+    post: { tags: [Attendance], summary: "[Lecturer] Lưu thông tin điểm danh cho buổi học", parameters: [{ name: scheduleId, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TakeAttendanceRequestDTO' } } } }, responses: { '200': { description: OK } } }
+
+  /api/assignments:
+    get: { tags: [Assignment], summary: "[Admin] Lấy tất cả phân công giảng dạy", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AssignmentDTO' } } } } } } }
+    post: { tags: [Assignment], summary: "[Admin] Tạo phân công mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateAssignmentDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/assignments/{id}:
+    get: { tags: [Assignment], summary: "[Admin] Lấy phân công theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentDTO' } } } } } }
+    delete: { tags: [Assignment], summary: "[Admin] Xóa một phân công", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }
+  /api/lecturers:
+    get: { tags: [Lecturer], summary: "[Admin] Lấy tất cả giảng viên", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/LecturerDTO' } } } } } } }
+    post: { tags: [Lecturer], summary: "[Admin] Tạo giảng viên mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateLecturerRequestDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/lecturers/{id}:
+    get: { tags: [Lecturer], summary: "Lấy giảng viên theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/LecturerDTO' } } } } } }
+    put: { tags: [Lecturer], summary: "[Admin] Cập nhật thông tin giảng viên", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateLecturerRequestDTO' } } } }, responses: { '200': { description: OK } } }
+    delete: { tags: [Lecturer], summary: "[Admin] Xóa giảng viên", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }
+  /api/lecturers/by-email/{email}:
+    get: { tags: [Lecturer], summary: "Lấy giảng viên theo email", parameters: [{ name: email, in: path, required: true, schema: { type: string } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/LecturerDTO' } } } } } }
+
+  /api/students:
+    get: { tags: [Student], summary: "[Admin] Lấy tất cả sinh viên", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StudentDTO' } } } } } } }
+    post: { tags: [Student], summary: "[Admin] Tạo sinh viên mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStudentDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/students/{id}:
+    get: { tags: [Student], summary: "Lấy sinh viên theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/StudentDTO' } } } } } }
+    put: { tags: [Student], summary: "[Admin] Cập nhật sinh viên", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStudentDTO' } } } }, responses: { '200': { description: OK } } }
+    delete: { tags: [Student], summary: "[Admin] Xóa sinh viên", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }
+  /api/students/by-class/{classId}:
+    get: { tags: [Student], summary: "[Admin] Lấy sinh viên theo lớp", parameters: [{ name: classId, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StudentDTO' } } } } } } }
+
+  /api/subjects:
+    get: { tags: [Subject], summary: "Lấy tất cả các môn học", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/SubjectDTO' } } } } } } }
+    post: { tags: [Subject], summary: "[Admin] Tạo môn học mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/subjects/{id}:
+    get: { tags: [Subject], summary: "Lấy môn học theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } } } }
+    put: { tags: [Subject], summary: "[Admin] Cập nhật môn học", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SubjectDTO' } } } }, responses: { '200': { description: OK } } }
+    delete: { tags: [Subject], summary: "[Admin] Xóa môn học", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }
+  /api/departments:
+    get: { tags: [Department], summary: "Lấy tất cả các Khoa/Bộ môn", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DepartmentDTO' } } } } } } }
+    post: { tags: [Department], summary: "[Admin] Tạo khoa/bộ môn mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/departments/{id}:
+    get: { tags: [Department], summary: "Lấy khoa/bộ môn theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } } } }
+    put: { tags: [Department], summary: "[Admin] Cập nhật khoa/bộ môn", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentDTO' } } } }, responses: { '200': { description: OK } } }
+    delete: { tags: [Department], summary: "[Admin] Xóa khoa/bộ môn", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }
+
+  /api/student-classes:
+    get: { tags: [Student Class], summary: "Lấy tất cả các lớp sinh viên", responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StudentClassDTO' } } } } } } }
+    post: { tags: [Student Class], summary: "[Admin] Tạo lớp sinh viên mới", requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } }, responses: { '201': { description: Created } } }
+  /api/student-classes/{id}:
+    get: { tags: [Student Class], summary: "Lấy lớp sinh viên theo ID", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } } } }
+    put: { tags: [Student Class], summary: "[Admin] Cập nhật lớp sinh viên", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StudentClassDTO' } } } }, responses: { '200': { description: OK } } }
+    delete: { tags: [Student Class], summary: "[Admin] Xóa lớp sinh viên", parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], responses: { '204': { description: "Xóa thành công" } } }

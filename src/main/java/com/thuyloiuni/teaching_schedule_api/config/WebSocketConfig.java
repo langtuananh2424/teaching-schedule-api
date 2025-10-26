@@ -12,16 +12,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Bật một message broker đơn giản, đích đến cho các tin nhắn bắt đầu bằng "/topic"
+        // Enables a simple in-memory message broker to carry messages back to the client on destinations prefixed with "/topic".
         config.enableSimpleBroker("/topic");
-        // Tiền tố cho các tin nhắn được ánh xạ tới các phương thức @MessageMapping trong controller
+        // Designates the "/app" prefix for messages that are bound for @MessageMapping-annotated methods.
         config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Đăng ký endpoint "/ws" để client kết nối tới.
-        // withSockJS() là để dự phòng khi trình duyệt không hỗ trợ WebSocket.
-        registry.addEndpoint("/ws").withSockJS();
+        // Registers the "/ws" endpoint, enabling SockJS fallback options so that alternate transports may be used if WebSocket is not available.
+        // setAllowedOrigins("*") is crucial for allowing the Flutter Web client (running on a different port) to connect.
+        registry.addEndpoint("/ws")
+                .setAllowedOrigins("*"); // Allow connections from any origin (for development)
+                //.withSockJS(); // Use .withSockJS() if you need fallback for older browsers
     }
 }

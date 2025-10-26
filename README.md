@@ -18,3 +18,4 @@ docker-compose up --build -d
 
 # Push docker
 docker push tyr24/teaching-schedule-api-app:latest
+docker pull tyr24/teaching-schedule-api-app:latest

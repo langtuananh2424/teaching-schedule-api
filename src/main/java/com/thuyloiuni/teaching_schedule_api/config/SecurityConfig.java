@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,7 +21,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import java.util.List;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -54,9 +55,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // For development, allow requests from any origin. 
+        // For production, you should restrict this to your frontend's actual domain.
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*")); // Allows all headers, including Authorization
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -65,36 +68,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
+                // Step 1: Enable CORS using the custom configuration bean
+                .cors(withDefaults()) // This will apply the corsConfigurationSource bean
+                .csrf(csrf -> csrf.disable()) // Disable CSRF protection for stateless APIs
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // =================================================================
-                        // ===== 1. CÁC ENDPOINT CÔNG KHAI (KHÔNG CẦN XÁC THỰC)         =====\n                        // =================================================================
-
-                        // SỬA LỖI: Cho phép tất cả các request OPTIONS (preflight) của CORS
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // SỬA LỖI: Cho phép kết nối WebSocket
-                        .requestMatchers("/ws/**").permitAll()
-
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/lecturers").permitAll()
-
-                        // =================================================================
-                        // ===== CÁC QUY TẮC KHÁC GIỮ NGUYÊN                             =====\n                        // =================================================================
-                        .requestMatchers(HttpMethod.PUT, "/api/lecturers/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/lecturers/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/absence-requests/**", "/api/makeup-sessions/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/attendance/**", "/api/absence-requests", "/api/makeup-sessions").hasRole("LECTURER")
-                        .requestMatchers("/api/lecturers/**", "/api/subjects/**", "/api/departments/**", "/api/student-classes/**", "/api/students/**", "/api/assignments/**", "/api/schedules/**", "/api/attendance/**", "/api/absence-requests/**", "/api/makeup-sessions/**").authenticated()
+                        // Public endpoints that do not require authentication
+                        .requestMatchers("/api/auth/**").permitAll() // Allow login/register endpoints
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll() // Allow Swagger UI
+                        .requestMatchers("/ws/**").permitAll() // Allow WebSocket connections
+                        
+                        // Any other request must be authenticated
                         .anyRequest().authenticated()
                 );
 
-        http.authenticationProvider(authenticationProvider());
+        // Add custom JWT filter before the standard username/password filter
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
