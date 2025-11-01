@@ -12,12 +12,15 @@ import lombok.Setter;
 public class SubjectDTO {
 
     private Integer id;
-    private String subjectCode; // Mã môn học, ví dụ: IT001
-    private String subjectName; // Tên môn học, ví dụ: Lập trình hướng đối tượng
-    private int credits;        // Số tín chỉ
+    private String subjectCode;
+    private String subjectName;
+    private int credits;
 
-    // Thêm thông tin về khoa
-    private Integer departmentId;   // ID của khoa
-    private String departmentName; // Tên của khoa
+    // Fields for reporting planned periods
+    private int theoryPeriods;
+    private int practicePeriods;
 
+    // Department Info
+    private Integer departmentId;
+    private String departmentName;
 }

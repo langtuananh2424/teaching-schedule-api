@@ -7,17 +7,13 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {SubjectMapper.class, StudentClassMapper.class, LecturerMapper.class, SemesterMapper.class})
 public interface AssignmentMapper {
 
-    // Ánh xạ từ các trường của các đối tượng lồng nhau
-    @Mapping(source = "subject.subjectId", target = "subjectId")
-    @Mapping(source = "subject.subjectName", target = "subjectName")
-    @Mapping(source = "studentClass.classId", target = "classId")
-    @Mapping(source = "studentClass.className", target = "className")
-    @Mapping(source = "lecturer.lecturerId", target = "lecturerId")
-    @Mapping(source = "lecturer.fullName", target = "lecturerName")
     AssignmentDTO toDto(Assignment assignment);
+
+    @Mapping(target = "schedules", ignore = true) // Schedules are a relationship, not mapped from DTO
+    Assignment toEntity(AssignmentDTO assignmentDTO);
 
     List<AssignmentDTO> toDtoList(List<Assignment> assignments);
 }

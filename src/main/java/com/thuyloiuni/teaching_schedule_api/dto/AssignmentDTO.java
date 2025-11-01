@@ -5,19 +5,8 @@ import lombok.Data;
 @Data
 public class AssignmentDTO {
     private Integer assignmentId;
-
-    // Thông tin Môn học
-    private Integer subjectId;
-    private String subjectName;
-
-    // Thông tin Lớp học
-    private Integer classId;
-    private String className;
-
-    // Thông tin Giảng viên
-    private Integer lecturerId;
-    private String lecturerName;
-
-    private Integer theorySession;
-    private Integer practiceSession;
+    private SubjectDTO subject;
+    private StudentClassDTO studentClass;
+    private LecturerDTO lecturer;
+    private SemesterDTO semester;
 }

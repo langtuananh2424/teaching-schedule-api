@@ -1,6 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.dto;
 
-import com.thuyloiuni.teaching_schedule_api.model.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import lombok.Data;
 
 /**

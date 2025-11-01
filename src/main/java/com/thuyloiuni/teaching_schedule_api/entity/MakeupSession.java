@@ -1,6 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.entity;
 
-import com.thuyloiuni.teaching_schedule_api.model.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -9,4 +9,3 @@ public class StudentClassDTO {
     private String className;
     private String semester;
 }
-
