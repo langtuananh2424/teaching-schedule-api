@@ -1,15 +1,12 @@
 package com.thuyloiuni.teaching_schedule_api.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Set;
 
 @Getter
 @Setter
@@ -17,7 +14,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "classes")
-
 public class StudentClass {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +28,7 @@ public class StudentClass {
 
     @Column(name = "semester", nullable = true, length = 20)
     private String semester;
+
+    @OneToMany(mappedBy = "studentClass", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Student> students;
 }

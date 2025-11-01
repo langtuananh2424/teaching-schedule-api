@@ -2,6 +2,7 @@ package com.thuyloiuni.teaching_schedule_api.seeder;
 
 import com.github.javafaker.Faker;
 import com.thuyloiuni.teaching_schedule_api.entity.*;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ScheduleStatus;
 import com.thuyloiuni.teaching_schedule_api.repository.*;
@@ -35,6 +36,9 @@ public class DataSeeder implements CommandLineRunner {
     private final LecturerRepository lecturerRepository;
     private final AssignmentRepository assignmentRepository;
     private final ScheduleRepository scheduleRepository;
+    private final AbsenceRequestRepository absenceRequestRepository;
+    private final MakeupSessionRepository makeupSessionRepository;
+    private final AttendanceRepository attendanceRepository;
     private final PasswordEncoder passwordEncoder;
     private final Faker faker = new Faker(new Locale("vi"));
 
@@ -55,15 +59,63 @@ public class DataSeeder implements CommandLineRunner {
         List<Subject> subjects = createSubjects(departments);
         createStudents(studentClasses);
 
-        // 2. Create Assignments linking all the above data
+        // 2. Create Assignments
         createAssignments(semesters, lecturers, subjects, studentClasses);
 
         // 3. Generate Schedules for all assignments
         createSchedulesForAllAssignments();
 
+        // 4. Create Specific Scenarios
+        createSpecificScenarios(lecturers, semesters, subjects, studentClasses);
+
         log.info("Data seeding finished successfully.");
     }
 
+    private void createSpecificScenarios(List<Lecturer> lecturers, List<Semester> semesters, List<Subject> subjects, List<StudentClass> studentClasses) {
+        log.info("Creating Specific Scenarios for test@thuyloi.edu.vn...");
+
+        Lecturer testLecturer = lecturerRepository.findByEmail("test@thuyloi.edu.vn").orElse(null);
+        if (testLecturer == null) {
+            log.error("Could not find test lecturer!");
+            return;
+        }
+
+        Semester recentSemester = semesters.stream()
+                .filter(s -> s.getAcademicYear().equals("2024-2025") && s.getName().equals("Học kỳ I"))
+                .findFirst().orElse(semesters.get(2));
+
+        Assignment testAssignment = createAssignment(recentSemester, subjects.get(1), testLecturer, studentClasses.get(0));
+
+        List<Schedule> testSchedules = createSchedulesForOneAssignment(testAssignment);
+
+        if (testSchedules.size() < 3) {
+            log.warn("Not enough schedules generated for test lecturer to create scenarios.");
+            return;
+        }
+
+        Schedule scheduleToMiss = testSchedules.get(1);
+        createAbsenceRequest(testLecturer, scheduleToMiss, "Tham dự hội thảo khoa học", ApprovalStatus.APPROVED, ApprovalStatus.APPROVED);
+        scheduleToMiss.setStatus(ScheduleStatus.ABSENT_APPROVED);
+        scheduleRepository.save(scheduleToMiss);
+
+        createMakeupSession(scheduleToMiss, scheduleToMiss.getSessionDate().plusWeeks(1), 7, 9, "H1-202", ApprovalStatus.APPROVED, ApprovalStatus.APPROVED);
+
+        Schedule scheduleTaught = testSchedules.get(0);
+        if (scheduleTaught.getSessionDate().isBefore(LocalDateTime.now())) {
+            scheduleTaught.setStatus(ScheduleStatus.TAUGHT);
+            scheduleRepository.save(scheduleTaught);
+            
+            // FIX: Fetch students from the repository instead of the entity
+            List<Student> studentsOfClass = studentRepository.findByStudentClass(scheduleTaught.getAssignment().getStudentClass());
+
+            for (int i = 0; i < studentsOfClass.size(); i++) {
+                createAttendance(scheduleTaught, studentsOfClass.get(i), i % 10 != 0);
+            }
+            log.info("Created attendance data for session ID: {}", scheduleTaught.getSessionId());
+        }
+    }
+
+    // ... (The rest of the file is unchanged) ...
     private List<Semester> createSemesters() {
         log.info("Creating Semesters...");
         List<Semester> semesters = new ArrayList<>();
@@ -101,6 +153,8 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Creating Lecturers...");
         List<Lecturer> lecturers = new ArrayList<>();
         lecturers.add(createLecturer("Admin", "ADMIN", "admin@thuyloi.edu.vn", "admin123", departments.get(0), RoleType.ADMIN));
+        // Add the specific test lecturer account
+        lecturers.add(createLecturer("Test Lecturer", "TESTGV", "test@thuyloi.edu.vn", "test1234", departments.get(0), RoleType.LECTURER));
         lecturers.add(createLecturer("Nguyễn Văn An", "GV01", "an.nv@thuyloi.edu.vn", "password", departments.get(0), RoleType.LECTURER));
         lecturers.add(createLecturer("Trần Thị Bình", "GV02", "binh.tt@thuyloi.edu.vn", "password", departments.get(0), RoleType.LECTURER));
         lecturers.add(createLecturer("Lê Văn Cường", "GV03", "cuong.lv@thuyloi.edu.vn", "password", departments.get(1), RoleType.LECTURER));
@@ -176,54 +230,46 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void createAssignments(List<Semester> semesters, List<Lecturer> lecturers, List<Subject> subjects, List<StudentClass> studentClasses) {
-        log.info("Creating Assignments...");
-        // HK I, 2023-2024
-        createAssignment(semesters.get(0), subjects.get(0), lecturers.get(1), studentClasses.get(0)); // An dạy Java cho 64K1
-        createAssignment(semesters.get(0), subjects.get(2), lecturers.get(3), studentClasses.get(2)); // Cường dạy SBVL cho 64X1
-
-        // HK II, 2023-2024
-        createAssignment(semesters.get(1), subjects.get(1), lecturers.get(2), studentClasses.get(0)); // Bình dạy CSDL cho 64K1
-
-        // HK I, 2024-2025
-        createAssignment(semesters.get(2), subjects.get(0), lecturers.get(2), studentClasses.get(1)); // Bình dạy Java cho 65K2
-        createAssignment(semesters.get(2), subjects.get(3), lecturers.get(4), studentClasses.get(2)); // Dung dạy KCKT cho 64X1
-
-        // HK II, 2024-2025
-        createAssignment(semesters.get(3), subjects.get(1), lecturers.get(1), studentClasses.get(1)); // An dạy CSDL cho 65K2
+        log.info("Creating General Assignments...");
+        createAssignment(semesters.get(0), subjects.get(0), lecturers.get(2), studentClasses.get(0));
+        createAssignment(semesters.get(0), subjects.get(2), lecturers.get(4), studentClasses.get(2));
+        createAssignment(semesters.get(1), subjects.get(1), lecturers.get(3), studentClasses.get(0));
+        createAssignment(semesters.get(2), subjects.get(0), lecturers.get(3), studentClasses.get(1));
+        createAssignment(semesters.get(2), subjects.get(3), lecturers.get(5), studentClasses.get(2));
+        createAssignment(semesters.get(3), subjects.get(1), lecturers.get(2), studentClasses.get(1));
     }
 
-    private void createAssignment(Semester semester, Subject subject, Lecturer lecturer, StudentClass studentClass) {
+    private Assignment createAssignment(Semester semester, Subject subject, Lecturer lecturer, StudentClass studentClass) {
         Assignment a = new Assignment();
         a.setSemester(semester);
         a.setSubject(subject);
         a.setLecturer(lecturer);
         a.setStudentClass(studentClass);
-        assignmentRepository.save(a);
+        return assignmentRepository.save(a);
     }
 
     private void createSchedulesForAllAssignments() {
-        log.info("Creating Schedules for all assignments...");
+        log.info("Creating Schedules for all general assignments...");
         List<Assignment> allAssignments = assignmentRepository.findAll();
         for (Assignment assignment : allAssignments) {
             createSchedulesForOneAssignment(assignment);
         }
     }
 
-    private void createSchedulesForOneAssignment(Assignment assignment) {
+    private List<Schedule> createSchedulesForOneAssignment(Assignment assignment) {
         int totalPeriods = assignment.getSubject().getTheoryPeriods() + assignment.getSubject().getPracticePeriods();
-        int periodsPerSession = 2; // Giả định mỗi buổi học 2 tiết
+        int periodsPerSession = 2;
         int totalSessions = (int) Math.ceil((double) totalPeriods / periodsPerSession);
 
-        LocalDate startDate = assignment.getSemester().getStartDate().plusWeeks(1); // Bắt đầu học sau tuần đầu tiên của học kỳ
+        LocalDate startDate = assignment.getSemester().getStartDate().plusWeeks(1);
         Random random = new Random();
+        List<Schedule> schedules = new ArrayList<>();
 
         for (int i = 1; i <= totalSessions; i++) {
-            // Tìm ngày trong tuần tiếp theo (Thứ 2 đến Thứ 6)
             while (startDate.getDayOfWeek() == DayOfWeek.SATURDAY || startDate.getDayOfWeek() == DayOfWeek.SUNDAY || startDate.isAfter(assignment.getSemester().getEndDate())) {
                 startDate = startDate.plusDays(1);
             }
 
-            // Ngẫu nhiên buổi sáng hoặc chiều
             int startPeriod = (random.nextBoolean()) ? 1 : 7;
             LocalDateTime sessionDateTime = startDate.atTime(startPeriod == 1 ? 7 : 13, 0);
 
@@ -235,10 +281,41 @@ public class DataSeeder implements CommandLineRunner {
             schedule.setEndPeriod(startPeriod + periodsPerSession - 1);
             schedule.setClassroom("C1-30" + (1 + random.nextInt(9)));
             schedule.setStatus(ScheduleStatus.NOT_TAUGHT);
-            scheduleRepository.save(schedule);
+            schedules.add(scheduleRepository.save(schedule));
 
-            // Chuyển sang ngày học tiếp theo, cách 2-4 ngày
             startDate = startDate.plusDays(2 + random.nextInt(3));
         }
+        return schedules;
+    }
+
+    private AbsenceRequest createAbsenceRequest(Lecturer l, Schedule s, String reason, ApprovalStatus deptStatus, ApprovalStatus ctsvStatus) {
+        AbsenceRequest r = new AbsenceRequest();
+        r.setLecturer(l);
+        r.setSchedule(s);
+        r.setReason(reason);
+        r.setDepartmentApproval(deptStatus);
+        r.setCtsvApproval(ctsvStatus);
+        return absenceRequestRepository.save(r);
+    }
+
+    private void createMakeupSession(Schedule absent, LocalDateTime dt, int start, int end, String room, ApprovalStatus deptStatus, ApprovalStatus ctsvStatus) {
+        MakeupSession ms = new MakeupSession();
+        ms.setAbsentSchedule(absent);
+        ms.setMakeupDate(dt);
+        ms.setMakeupStartPeriod(start);
+        ms.setMakeupEndPeriod(end);
+        ms.setMakeupClassroom(room);
+        ms.setDepartmentApproval(deptStatus);
+        ms.setCtsvApproval(ctsvStatus);
+        makeupSessionRepository.save(ms);
+    }
+
+    private void createAttendance(Schedule schedule, Student student, boolean isPresent) {
+        Attendance a = new Attendance();
+        a.setSchedule(schedule);
+        a.setStudent(student);
+        a.setIsPresent(isPresent);
+        a.setTimestamp(schedule.getSessionDate());
+        attendanceRepository.save(a);
     }
 }
