@@ -18,28 +18,28 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/makeup-sessions")
 @RequiredArgsConstructor
-@Tag(name = "Makeup Session", description = "Endpoints for managing makeup teaching sessions")
+@Tag(name = "Makeup Session", description = "Các API để quản lý các yêu cầu dạy bù")
 public class MakeupSessionController {
 
     private final MakeupSessionService makeupSessionService;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all makeup sessions", description = "Retrieves a list of all makeup sessions. Accessible only by ADMIN.")
+    @Operation(summary = "Lấy tất cả các yêu cầu dạy bù", description = "Truy xuất danh sách tất cả các yêu cầu dạy bù. Chỉ có ADMIN mới có quyền truy cập.")
     public ResponseEntity<List<MakeupSessionDTO>> getAllMakeupSessions() {
         return ResponseEntity.ok(makeupSessionService.getAllMakeupSessions());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
-    @Operation(summary = "Get makeup session by ID", description = "Retrieves a single makeup session by its ID.")
+    @Operation(summary = "Lấy yêu cầu dạy bù theo ID", description = "Truy xuất một yêu cầu dạy bù cụ thể bằng ID của nó.")
     public ResponseEntity<MakeupSessionDTO> getMakeupSessionById(@PathVariable Integer id) {
         return ResponseEntity.ok(makeupSessionService.getMakeupSessionById(id));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
-    @Operation(summary = "Create a new makeup session request", description = "Allows an ADMIN or LECTURER to submit a new request for a makeup session.")
+    @Operation(summary = "Tạo một yêu cầu dạy bù mới", description = "Cho phép ADMIN hoặc LECTURER tạo một yêu cầu dạy bù mới.")
     public ResponseEntity<MakeupSessionDTO> createMakeupSession(@Valid @RequestBody CreateMakeupSessionDTO createDto) {
         MakeupSessionDTO createdSession = makeupSessionService.createMakeupSession(createDto);
         return new ResponseEntity<>(createdSession, HttpStatus.CREATED);
@@ -47,7 +47,7 @@ public class MakeupSessionController {
 
     @PatchMapping("/{id}/department-approval")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật trạng thái duyệt của Bộ môn", description = "Cập nhật trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Bộ môn. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Bộ môn", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Bộ môn. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
     public ResponseEntity<MakeupSessionDTO> updateDepartmentApproval(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
@@ -57,7 +57,7 @@ public class MakeupSessionController {
 
     @PatchMapping("/{id}/ctsv-approval")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng CTSV", description = "Cập nhật trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng CTSV. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng CTSV", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng CTSV. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
     public ResponseEntity<MakeupSessionDTO> updateCtsvApproval(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {

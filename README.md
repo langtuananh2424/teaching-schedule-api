@@ -19,3 +19,6 @@ docker-compose up --build -d
 # Push docker
 docker push tyr24/teaching-schedule-api-app:latest
 docker pull tyr24/teaching-schedule-api-app:latest
+
+# Swagger
+http://localhost:8080/swagger-ui/index.html
