@@ -38,8 +38,8 @@ public class MakeupSessionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('LECTURER')")
-    @Operation(summary = "Create a new makeup session request", description = "Allows a LECTURER to submit a new request for a makeup session.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @Operation(summary = "Create a new makeup session request", description = "Allows an ADMIN or LECTURER to submit a new request for a makeup session.")
     public ResponseEntity<MakeupSessionDTO> createMakeupSession(@Valid @RequestBody CreateMakeupSessionDTO createDto) {
         MakeupSessionDTO createdSession = makeupSessionService.createMakeupSession(createDto);
         return new ResponseEntity<>(createdSession, HttpStatus.CREATED);
@@ -47,7 +47,7 @@ public class MakeupSessionController {
 
     @PatchMapping("/{id}/department-approval")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update department approval for a makeup session", description = "Sets the approval status (APPROVED or REJECTED) for the Department level.")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Bộ môn", description = "Cập nhật trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Bộ môn. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
     public ResponseEntity<MakeupSessionDTO> updateDepartmentApproval(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
@@ -57,7 +57,7 @@ public class MakeupSessionController {
 
     @PatchMapping("/{id}/ctsv-approval")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update CTSV approval for a makeup session", description = "Sets the approval status (APPROVED or REJECTED) for the CTSV level.")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng CTSV", description = "Cập nhật trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng CTSV. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
     public ResponseEntity<MakeupSessionDTO> updateCtsvApproval(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {

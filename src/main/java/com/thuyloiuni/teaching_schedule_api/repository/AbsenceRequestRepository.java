@@ -1,21 +1,22 @@
 package com.thuyloiuni.teaching_schedule_api.repository;
 
 import com.thuyloiuni.teaching_schedule_api.entity.AbsenceRequest;
+import com.thuyloiuni.teaching_schedule_api.entity.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AbsenceRequestRepository extends JpaRepository<AbsenceRequest, Integer> {
 
-    // This method can be used to find a request associated with a specific schedule session.
     List<AbsenceRequest> findBySchedule_SessionId(Integer sessionId);
 
-    // The methods findByApprovalStatus and findByApprover_LecturerId have been removed
-    // as they are no longer compatible with the new two-level approval logic.
-    // If you need to find requests by status, you should create specific queries
-    // that check the departmentApproval and ctsvApproval fields, for example:
-    // List<AbsenceRequest> findByDepartmentApprovalOrCtsvApproval(ApprovalStatus deptStatus, ApprovalStatus ctsvStatus);
+    /**
+     * Finds an absence request by the Schedule entity.
+     * This is used to check for duplicate requests for the same session.
+     */
+    Optional<AbsenceRequest> findBySchedule(Schedule schedule);
 
 }

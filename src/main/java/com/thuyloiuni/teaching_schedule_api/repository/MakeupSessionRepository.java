@@ -12,7 +12,7 @@ public interface MakeupSessionRepository extends JpaRepository<MakeupSession, In
 
     /**
      * Finds a makeup session based on the original absent schedule.
-     * The method name is automatically derived from the 'absentSchedule' field in the MakeupSession entity.
+     * This is crucial for checking for duplicate makeup sessions.
      */
     Optional<MakeupSession> findByAbsentSchedule(Schedule absentSchedule);
 

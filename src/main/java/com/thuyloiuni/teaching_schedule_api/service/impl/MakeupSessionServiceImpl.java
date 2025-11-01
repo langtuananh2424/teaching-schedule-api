@@ -5,6 +5,8 @@ import com.thuyloiuni.teaching_schedule_api.dto.MakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.MakeupSession;
 import com.thuyloiuni.teaching_schedule_api.entity.Schedule;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ScheduleStatus;
 import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
 import com.thuyloiuni.teaching_schedule_api.mapper.MakeupSessionMapper;
 import com.thuyloiuni.teaching_schedule_api.repository.MakeupSessionRepository;
@@ -54,7 +56,6 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         newSession.setMakeupStartPeriod(createDto.getMakeupStartPeriod());
         newSession.setMakeupEndPeriod(createDto.getMakeupEndPeriod());
         newSession.setMakeupClassroom(createDto.getMakeupClassroom());
-        // Default statuses are set by @PrePersist in the entity
 
         MakeupSession savedSession = makeupSessionRepository.save(newSession);
         MakeupSessionDTO createdDto = mapToDtoWithDetails(savedSession);
@@ -80,8 +81,6 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         return updateAndNotify(session);
     }
 
-    // Helper methods
-
     private MakeupSession findSessionById(Integer id) {
         return makeupSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Makeup session not found with ID: " + id));
@@ -89,13 +88,38 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
 
     private MakeupSessionDTO updateAndNotify(MakeupSession session) {
         MakeupSession updatedSession = makeupSessionRepository.save(session);
+
+        // Check if both approvals are granted
+        if (session.getDepartmentApproval() == ApprovalStatus.APPROVED && session.getCtsvApproval() == ApprovalStatus.APPROVED) {
+            createScheduleForMakeupSession(session);
+        }
+
         MakeupSessionDTO updatedDto = mapToDtoWithDetails(updatedSession);
 
-        // Notify the lecturer who owns the original schedule
         Integer lecturerId = session.getAbsentSchedule().getAssignment().getLecturer().getLecturerId();
         messagingTemplate.convertAndSend("/topic/lecturer/" + lecturerId, updatedDto);
 
         return updatedDto;
+    }
+
+    private void createScheduleForMakeupSession(MakeupSession makeupSession) {
+        Schedule absentSchedule = makeupSession.getAbsentSchedule();
+
+        // Create and save the new schedule for the makeup session
+        Schedule newSchedule = new Schedule();
+        newSchedule.setAssignment(absentSchedule.getAssignment());
+        newSchedule.setSessionDate(makeupSession.getMakeupDate());
+        newSchedule.setStartPeriod(makeupSession.getMakeupStartPeriod());
+        newSchedule.setEndPeriod(makeupSession.getMakeupEndPeriod());
+        newSchedule.setClassroom(makeupSession.getMakeupClassroom());
+        newSchedule.setLessonOrder(absentSchedule.getLessonOrder());
+        newSchedule.setStatus(ScheduleStatus.NOT_TAUGHT);
+        newSchedule.setNotes("Buổi dạy bù cho lịch nghỉ có ID: " + absentSchedule.getSessionId());
+        scheduleRepository.save(newSchedule);
+
+        // Update the status of the original, absent schedule to 'TAUGHT'
+        absentSchedule.setStatus(ScheduleStatus.TAUGHT);
+        scheduleRepository.save(absentSchedule);
     }
 
     private MakeupSessionDTO mapToDtoWithDetails(MakeupSession session) {

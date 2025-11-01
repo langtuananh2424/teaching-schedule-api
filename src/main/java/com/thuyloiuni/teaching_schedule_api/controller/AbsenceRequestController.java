@@ -38,8 +38,8 @@ public class AbsenceRequestController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('LECTURER')")
-    @Operation(summary = "Create a new absence request", description = "Allows a LECTURER to submit a new absence request. A makeup session can be proposed within the same request.")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and #createDto.lecturerId == principal.lecturerId)")
+    @Operation(summary = "Create a new absence request", description = "Allows an ADMIN to create a request for any lecturer, or a LECTURER to create a request for themselves.")
     public ResponseEntity<AbsenceRequestDTO> createRequest(@Valid @RequestBody CreateAbsenceRequestDTO createDto) {
         AbsenceRequestDTO createdRequest = absenceRequestService.createRequest(createDto);
         return new ResponseEntity<>(createdRequest, HttpStatus.CREATED);
