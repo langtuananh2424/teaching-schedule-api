@@ -24,14 +24,14 @@ public class AbsenceRequestController {
     private final AbsenceRequestService absenceRequestService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy tất cả đơn xin nghỉ", description = "Truy xuất danh sách tất cả các đơn xin nghỉ. Chỉ có ADMIN mới có quyền truy cập.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Lấy tất cả đơn xin nghỉ", description = "Truy xuất danh sách tất cả các đơn xin nghỉ. ADMIN có thể xem tất cả, MANAGER chỉ xem được các yêu cầu của khoa mình.")
     public ResponseEntity<List<AbsenceRequestDTO>> getAllRequests() {
         return ResponseEntity.ok(absenceRequestService.getAllRequests());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER', 'MANAGER')")
     @Operation(summary = "Lấy đơn xin nghỉ theo ID", description = "Truy xuất một đơn xin nghỉ cụ thể bằng ID của nó.")
     public ResponseEntity<AbsenceRequestDTO> getRequestById(@PathVariable("id") Integer requestId) {
         return ResponseEntity.ok(absenceRequestService.getRequestById(requestId));
@@ -45,23 +45,23 @@ public class AbsenceRequestController {
         return new ResponseEntity<>(createdRequest, HttpStatus.CREATED);
     }
 
-    @PatchMapping("/{id}/department-approval")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật trạng thái duyệt của Bộ môn", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Bộ môn.")
-    public ResponseEntity<AbsenceRequestDTO> updateDepartmentApproval(
+    @PatchMapping("/{id}/manager-approval")
+    @PreAuthorize("hasRole('MANAGER', 'ADMIN')")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Trưởng khoa (Manager)", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Trưởng khoa (Manager). Chỉ Manager mới có quyền này.")
+    public ResponseEntity<AbsenceRequestDTO> updateManagerApproval(
             @PathVariable("id") Integer requestId,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
-        AbsenceRequestDTO updatedRequest = absenceRequestService.updateDepartmentApproval(requestId, statusDto);
+        AbsenceRequestDTO updatedRequest = absenceRequestService.updateManagerApproval(requestId, statusDto);
         return ResponseEntity.ok(updatedRequest);
     }
 
-    @PatchMapping("/{id}/ctsv-approval")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng CTSV", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng Công tác Sinh viên.")
-    public ResponseEntity<AbsenceRequestDTO> updateCtsvApproval(
+    @PatchMapping("/{id}/academic-affairs-approval")
+    @PreAuthorize("hasRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng Đào tạo", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng Đào tạo.")
+    public ResponseEntity<AbsenceRequestDTO> updateAcademicAffairsApproval(
             @PathVariable("id") Integer requestId,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
-        AbsenceRequestDTO updatedRequest = absenceRequestService.updateCtsvApproval(requestId, statusDto);
+        AbsenceRequestDTO updatedRequest = absenceRequestService.updateAcademicAffairsApproval(requestId, statusDto);
         return ResponseEntity.ok(updatedRequest);
     }
 }

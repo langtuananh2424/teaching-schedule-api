@@ -3,9 +3,12 @@ package com.thuyloiuni.teaching_schedule_api.service.impl;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.MakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
+import com.thuyloiuni.teaching_schedule_api.entity.Department;
+import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
 import com.thuyloiuni.teaching_schedule_api.entity.MakeupSession;
 import com.thuyloiuni.teaching_schedule_api.entity.Schedule;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ScheduleStatus;
 import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
 import com.thuyloiuni.teaching_schedule_api.mapper.MakeupSessionMapper;
@@ -14,6 +17,9 @@ import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
 import com.thuyloiuni.teaching_schedule_api.service.MakeupSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +38,21 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     @Override
     @Transactional(readOnly = true)
     public List<MakeupSessionDTO> getAllMakeupSessions() {
-        return makeupSessionRepository.findAll().stream()
+        Lecturer currentUser = getCurrentUser();
+        List<MakeupSession> sessions;
+
+        if (currentUser.getRole() == RoleType.MANAGER) {
+            // Manager sees requests from their department only
+            Department managerDepartment = currentUser.getDepartment();
+            sessions = makeupSessionRepository.findAll().stream()
+                    .filter(session -> session.getAbsentSchedule().getAssignment().getLecturer().getDepartment().equals(managerDepartment))
+                    .collect(Collectors.toList());
+        } else {
+            // ADMIN sees all requests
+            sessions = makeupSessionRepository.findAll();
+        }
+
+        return sessions.stream()
                 .map(this::mapToDtoWithDetails)
                 .collect(Collectors.toList());
     }
@@ -56,6 +76,9 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         newSession.setMakeupStartPeriod(createDto.getMakeupStartPeriod());
         newSession.setMakeupEndPeriod(createDto.getMakeupEndPeriod());
         newSession.setMakeupClassroom(createDto.getMakeupClassroom());
+        // Default statuses are set in the entity constructor or here if needed
+        newSession.setManagerApproval(ApprovalStatus.PENDING);
+        newSession.setAcademicAffairsApproval(ApprovalStatus.PENDING);
 
         MakeupSession savedSession = makeupSessionRepository.save(newSession);
         MakeupSessionDTO createdDto = mapToDtoWithDetails(savedSession);
@@ -67,17 +90,25 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
 
     @Override
     @Transactional
-    public MakeupSessionDTO updateDepartmentApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
+    public MakeupSessionDTO updateManagerApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
+        Lecturer manager = getCurrentUser();
         MakeupSession session = findSessionById(id);
-        session.setDepartmentApproval(statusDto.getStatus());
+
+        // Security check: Manager can only approve requests from their own department
+        Department requestDepartment = session.getAbsentSchedule().getAssignment().getLecturer().getDepartment();
+        if (!manager.getDepartment().equals(requestDepartment)) {
+            throw new AccessDeniedException("Manager can only approve requests from their own department.");
+        }
+
+        session.setManagerApproval(statusDto.getStatus());
         return updateAndNotify(session);
     }
 
     @Override
     @Transactional
-    public MakeupSessionDTO updateCtsvApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
+    public MakeupSessionDTO updateAcademicAffairsApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
         MakeupSession session = findSessionById(id);
-        session.setCtsvApproval(statusDto.getStatus());
+        session.setAcademicAffairsApproval(statusDto.getStatus());
         return updateAndNotify(session);
     }
 
@@ -90,12 +121,13 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         MakeupSession updatedSession = makeupSessionRepository.save(session);
 
         // Check if both approvals are granted
-        if (session.getDepartmentApproval() == ApprovalStatus.APPROVED && session.getCtsvApproval() == ApprovalStatus.APPROVED) {
+        if (session.getManagerApproval() == ApprovalStatus.APPROVED && session.getAcademicAffairsApproval() == ApprovalStatus.APPROVED) {
             createScheduleForMakeupSession(session);
         }
 
         MakeupSessionDTO updatedDto = mapToDtoWithDetails(updatedSession);
 
+        // Notify the lecturer who created the request
         Integer lecturerId = session.getAbsentSchedule().getAssignment().getLecturer().getLecturerId();
         messagingTemplate.convertAndSend("/topic/lecturer/" + lecturerId, updatedDto);
 
@@ -123,9 +155,14 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     }
 
     private MakeupSessionDTO mapToDtoWithDetails(MakeupSession session) {
-        MakeupSessionDTO dto = makeupSessionMapper.toDto(session);
-        dto.setDepartmentStatus(session.getDepartmentApproval());
-        dto.setCtsvStatus(session.getCtsvApproval());
-        return dto;
+        return makeupSessionMapper.toDto(session);
+    }
+    
+    private Lecturer getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("User is not authenticated.");
+        }
+        return (Lecturer) authentication.getPrincipal();
     }
 }

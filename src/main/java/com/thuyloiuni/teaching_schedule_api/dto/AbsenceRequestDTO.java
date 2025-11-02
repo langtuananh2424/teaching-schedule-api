@@ -20,9 +20,9 @@ public class AbsenceRequestDTO {
     private String reason;
     private LocalDateTime createdAt;
 
-    // --- New Approval Statuses ---
-    private ApprovalStatus departmentStatus; // Department's approval status
-    private ApprovalStatus ctsvStatus;       // CTSV's approval status
+    // --- Approval Statuses ---
+    private ApprovalStatus managerStatus;       // Manager's (Head of Dept) approval status
+    private ApprovalStatus academicAffairsStatus; // Academic Affairs' approval status
 
     // ---- Lecturer Information ----
     private String lecturerName;

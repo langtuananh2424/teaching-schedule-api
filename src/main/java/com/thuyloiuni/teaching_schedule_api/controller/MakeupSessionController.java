@@ -24,14 +24,14 @@ public class MakeupSessionController {
     private final MakeupSessionService makeupSessionService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy tất cả các yêu cầu dạy bù", description = "Truy xuất danh sách tất cả các yêu cầu dạy bù. Chỉ có ADMIN mới có quyền truy cập.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Lấy tất cả các yêu cầu dạy bù", description = "Truy xuất danh sách tất cả các yêu cầu dạy bù. ADMIN có thể xem tất cả, MANAGER chỉ xem được các yêu cầu của khoa mình.")
     public ResponseEntity<List<MakeupSessionDTO>> getAllMakeupSessions() {
         return ResponseEntity.ok(makeupSessionService.getAllMakeupSessions());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER', 'MANAGER')")
     @Operation(summary = "Lấy yêu cầu dạy bù theo ID", description = "Truy xuất một yêu cầu dạy bù cụ thể bằng ID của nó.")
     public ResponseEntity<MakeupSessionDTO> getMakeupSessionById(@PathVariable Integer id) {
         return ResponseEntity.ok(makeupSessionService.getMakeupSessionById(id));
@@ -45,23 +45,23 @@ public class MakeupSessionController {
         return new ResponseEntity<>(createdSession, HttpStatus.CREATED);
     }
 
-    @PatchMapping("/{id}/department-approval")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật trạng thái duyệt của Bộ môn", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Bộ môn. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
-    public ResponseEntity<MakeupSessionDTO> updateDepartmentApproval(
+    @PatchMapping("/{id}/manager-approval")
+    @PreAuthorize("hasRole('MANAGER')")
+    @Operation(summary = "Cập nhật trạng thái duyệt của Trưởng khoa (Manager)", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Trưởng khoa (Manager). Chỉ Manager mới có quyền này. Nếu cả hai cấp (Manager và Phòng Đào tạo) đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
+    public ResponseEntity<MakeupSessionDTO> updateManagerApproval(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
-        MakeupSessionDTO updatedSession = makeupSessionService.updateDepartmentApproval(id, statusDto);
+        MakeupSessionDTO updatedSession = makeupSessionService.updateManagerApproval(id, statusDto);
         return ResponseEntity.ok(updatedSession);
     }
 
-    @PatchMapping("/{id}/ctsv-approval")
+    @PatchMapping("/{id}/academic-affairs-approval")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng CTSV", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng CTSV. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
-    public ResponseEntity<MakeupSessionDTO> updateCtsvApproval(
+    @Operation(summary = "Cập nhật trạng thái duyệt của Phòng Đào tạo", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng Đào tạo. Chỉ ADMIN mới có quyền này. Nếu cả hai cấp đều duyệt, một lịch học mới sẽ được tự động tạo cho buổi dạy bù.")
+    public ResponseEntity<MakeupSessionDTO> updateAcademicAffairsApproval(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateApprovalStatusDTO statusDto) {
-        MakeupSessionDTO updatedSession = makeupSessionService.updateCtsvApproval(id, statusDto);
+        MakeupSessionDTO updatedSession = makeupSessionService.updateAcademicAffairsApproval(id, statusDto);
         return ResponseEntity.ok(updatedSession);
     }
 }

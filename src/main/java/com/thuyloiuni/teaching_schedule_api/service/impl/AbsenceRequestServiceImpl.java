@@ -3,11 +3,9 @@ package com.thuyloiuni.teaching_schedule_api.service.impl;
 import com.thuyloiuni.teaching_schedule_api.dto.AbsenceRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateAbsenceRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
-import com.thuyloiuni.teaching_schedule_api.entity.AbsenceRequest;
-import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
-import com.thuyloiuni.teaching_schedule_api.entity.MakeupSession;
-import com.thuyloiuni.teaching_schedule_api.entity.Schedule;
+import com.thuyloiuni.teaching_schedule_api.entity.*;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 import com.thuyloiuni.teaching_schedule_api.exception.BadRequestException;
 import com.thuyloiuni.teaching_schedule_api.exception.RequestConflictException;
 import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
@@ -19,11 +17,13 @@ import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
 import com.thuyloiuni.teaching_schedule_api.service.AbsenceRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +40,20 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     @Override
     @Transactional(readOnly = true)
     public List<AbsenceRequestDTO> getAllRequests() {
-        return absenceRequestRepository.findAll().stream()
+        Lecturer currentUser = getCurrentUser();
+        List<AbsenceRequest> requests;
+
+        if (currentUser.getRole() == RoleType.MANAGER) {
+            Department managerDepartment = currentUser.getDepartment();
+            requests = absenceRequestRepository.findAll().stream()
+                    .filter(request -> request.getLecturer().getDepartment().equals(managerDepartment))
+                    .collect(Collectors.toList());
+        } else {
+            // ADMIN sees all requests
+            requests = absenceRequestRepository.findAll();
+        }
+
+        return requests.stream()
                 .map(this::mapToDtoWithDetails)
                 .collect(Collectors.toList());
     }
@@ -58,7 +71,6 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         Schedule schedule = scheduleRepository.findById(createDto.getSessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with ID: " + createDto.getSessionId()));
 
-        // Validation checks
         validateAbsenceRequest(schedule, createDto);
 
         Lecturer lecturer = lecturerRepository.findById(createDto.getLecturerId())
@@ -68,6 +80,8 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         newRequest.setSchedule(schedule);
         newRequest.setLecturer(lecturer);
         newRequest.setReason(createDto.getReason());
+        newRequest.setManagerApproval(ApprovalStatus.PENDING);
+        newRequest.setAcademicAffairsApproval(ApprovalStatus.PENDING);
 
         AbsenceRequest savedRequest = absenceRequestRepository.save(newRequest);
 
@@ -86,21 +100,15 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
 
         return createdDto;
     }
-    
+
     private void validateAbsenceRequest(Schedule schedule, CreateAbsenceRequestDTO createDto) {
-        // Check if an absence request for this schedule already exists
         if (absenceRequestRepository.findBySchedule(schedule).isPresent()) {
             throw new RequestConflictException("Đơn xin nghỉ cho buổi học này đã tồn tại.");
         }
-
-        // If makeup details are provided, perform additional checks
         if (createDto.getMakeupDate() != null) {
-            // Check if a makeup session for this schedule already exists
             if (makeupSessionRepository.findByAbsentSchedule(schedule).isPresent()) {
                 throw new RequestConflictException("Buổi học này đã được đăng ký dạy bù từ trước.");
             }
-            
-            // Check if makeup date is after the original session date
             if (!createDto.getMakeupDate().isAfter(schedule.getSessionDate())) {
                 throw new BadRequestException("Ngày dạy bù phải sau ngày của buổi học gốc.");
             }
@@ -109,17 +117,24 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
 
     @Override
     @Transactional
-    public AbsenceRequestDTO updateDepartmentApproval(Integer requestId, UpdateApprovalStatusDTO statusDto) {
+    public AbsenceRequestDTO updateManagerApproval(Integer requestId, UpdateApprovalStatusDTO statusDto) {
+        Lecturer manager = getCurrentUser();
         AbsenceRequest request = findRequestById(requestId);
-        request.setDepartmentApproval(statusDto.getStatus());
+
+        Department requestDepartment = request.getLecturer().getDepartment();
+        if (!manager.getDepartment().equals(requestDepartment)) {
+            throw new AccessDeniedException("Manager can only approve requests from their own department.");
+        }
+
+        request.setManagerApproval(statusDto.getStatus());
         return updateAndNotify(request);
     }
 
     @Override
     @Transactional
-    public AbsenceRequestDTO updateCtsvApproval(Integer requestId, UpdateApprovalStatusDTO statusDto) {
+    public AbsenceRequestDTO updateAcademicAffairsApproval(Integer requestId, UpdateApprovalStatusDTO statusDto) {
         AbsenceRequest request = findRequestById(requestId);
-        request.setCtsvApproval(statusDto.getStatus());
+        request.setAcademicAffairsApproval(statusDto.getStatus());
         return updateAndNotify(request);
     }
 
@@ -140,8 +155,9 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
 
     private AbsenceRequestDTO mapToDtoWithDetails(AbsenceRequest request) {
         AbsenceRequestDTO dto = absenceRequestMapper.toDto(request);
-        dto.setDepartmentStatus(request.getDepartmentApproval());
-        dto.setCtsvStatus(request.getCtsvApproval());
+        // This manual mapping is no longer needed as MapStruct handles it.
+        // dto.setManagerStatus(request.getManagerApproval());
+        // dto.setAcademicAffairsStatus(request.getAcademicAffairsApproval());
 
         Schedule originalSchedule = request.getSchedule();
         if (originalSchedule != null) {
@@ -154,5 +170,13 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
             });
         }
         return dto;
+    }
+
+    private Lecturer getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("User is not authenticated.");
+        }
+        return (Lecturer) authentication.getPrincipal();
     }
 }

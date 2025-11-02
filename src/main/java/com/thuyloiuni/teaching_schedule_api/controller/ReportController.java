@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,14 +26,16 @@ public class ReportController {
     private final ReportService reportService;
 
     @GetMapping("/subjects")
-    @Operation(summary = "Lấy môn học theo học kỳ để báo cáo", description = "Truy xuất danh sách các môn học trong một học kỳ cụ thể, dùng để lọc trên giao diện báo cáo.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Lấy môn học theo học kỳ để báo cáo", description = "Truy xuất danh sách các môn học trong một học kỳ cụ thể. ADMIN thấy tất cả, MANAGER chỉ thấy các môn thuộc khoa mình.")
     public ResponseEntity<List<SubjectDTO>> getSubjectsBySemester(@RequestParam Integer semesterId) {
         List<SubjectDTO> subjects = reportService.getSubjectsBySemester(semesterId);
         return ResponseEntity.ok(subjects);
     }
 
     @GetMapping("/lecturers")
-    @Operation(summary = "Lấy giảng viên theo học kỳ và môn học để báo cáo", description = "Truy xuất danh sách giảng viên dạy một môn học trong một học kỳ cụ thể.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Lấy giảng viên theo học kỳ và môn học để báo cáo", description = "Truy xuất danh sách giảng viên dạy một môn học trong một học kỳ. ADMIN thấy tất cả, MANAGER chỉ thấy giảng viên thuộc khoa mình.")
     public ResponseEntity<List<LecturerDTO>> getLecturersForReport(
             @RequestParam Integer semesterId,
             @RequestParam Integer subjectId) {
@@ -41,7 +44,8 @@ public class ReportController {
     }
 
     @GetMapping("/classes")
-    @Operation(summary = "Lấy lớp học theo học kỳ, môn học và giảng viên", description = "Truy xuất danh sách các lớp học do một giảng viên cụ thể dạy cho một môn học trong một học kỳ.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Lấy lớp học theo học kỳ, môn học và giảng viên", description = "Truy xuất danh sách các lớp học do một giảng viên cụ thể dạy. ADMIN thấy tất cả, MANAGER chỉ thấy các lớp của giảng viên thuộc khoa mình.")
     public ResponseEntity<List<StudentClassDTO>> getClassesForReport(
             @RequestParam Integer semesterId,
             @RequestParam Integer subjectId,
@@ -51,7 +55,8 @@ public class ReportController {
     }
 
     @GetMapping("/lecturer-activity")
-    @Operation(summary = "Tạo báo cáo hoạt động của giảng viên", description = "Tạo và truy xuất báo cáo chi tiết về hoạt động giảng dạy (số buổi dạy, nghỉ, bù) cho một phân công cụ thể.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Tạo báo cáo hoạt động của giảng viên", description = "Tạo báo cáo chi tiết hoạt động của giảng viên. ADMIN có thể xem của bất kỳ ai, MANAGER chỉ có thể xem của giảng viên trong khoa mình.")
     public ResponseEntity<LecturerActivityReportDTO> getLecturerActivityReport(@RequestParam Integer assignmentId) {
         LecturerActivityReportDTO report = reportService.getLecturerActivityReport(assignmentId);
         return ResponseEntity.ok(report);

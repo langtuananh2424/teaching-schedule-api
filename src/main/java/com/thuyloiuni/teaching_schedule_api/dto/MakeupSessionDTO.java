@@ -17,7 +17,7 @@ public class MakeupSessionDTO {
     private String makeupClassroom;
     private LocalDateTime createdAt;
 
-    // --- New Approval Statuses ---
-    private ApprovalStatus departmentStatus;
-    private ApprovalStatus ctsvStatus;
+    // --- Approval Statuses ---
+    private ApprovalStatus managerStatus;
+    private ApprovalStatus academicAffairsStatus;
 }

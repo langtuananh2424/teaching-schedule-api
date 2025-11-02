@@ -9,8 +9,10 @@ import java.util.List;
 public interface MakeupSessionService {
 
     /**
-     * Retrieves all makeup sessions.
-     * @return A list of all makeup sessions.
+     * Retrieves all makeup sessions based on the user's role.
+     * - ADMIN can see all requests.
+     * - MANAGER can only see requests from their department.
+     * @return A list of makeup sessions.
      */
     List<MakeupSessionDTO> getAllMakeupSessions();
 
@@ -22,7 +24,7 @@ public interface MakeupSessionService {
     MakeupSessionDTO getMakeupSessionById(Integer id);
 
     /**
-     * Creates a new makeup session. The initial status for both department and CTSV approval
+     * Creates a new makeup session. The initial status for both manager and academic affairs approval
      * will be set to PENDING.
      * @param createDto The DTO containing information for the new session.
      * @return The created makeup session DTO.
@@ -30,18 +32,19 @@ public interface MakeupSessionService {
     MakeupSessionDTO createMakeupSession(CreateMakeupSessionDTO createDto);
 
     /**
-     * Updates the approval status from the Department level for a makeup session.
+     * Updates the approval status from the Manager level for a makeup session.
+     * A manager can only approve requests from their own department.
      * @param id The ID of the makeup session to update.
      * @param statusDto The DTO containing the new status (APPROVED or REJECTED).
      * @return The updated makeup session DTO.
      */
-    MakeupSessionDTO updateDepartmentApproval(Integer id, UpdateApprovalStatusDTO statusDto);
+    MakeupSessionDTO updateManagerApproval(Integer id, UpdateApprovalStatusDTO statusDto);
 
     /**
-     * Updates the approval status from the CTSV level for a makeup session.
+     * Updates the approval status from the Academic Affairs level for a makeup session.
      * @param id The ID of the makeup session to update.
      * @param statusDto The DTO containing the new status (APPROVED or REJECTED).
      * @return The updated makeup session DTO.
      */
-    MakeupSessionDTO updateCtsvApproval(Integer id, UpdateApprovalStatusDTO statusDto);
+    MakeupSessionDTO updateAcademicAffairsApproval(Integer id, UpdateApprovalStatusDTO statusDto);
 }

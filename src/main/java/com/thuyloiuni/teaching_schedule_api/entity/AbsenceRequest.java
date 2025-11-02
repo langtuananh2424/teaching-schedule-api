@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "absence_requests") // Corrected table name
+@Table(name = "absence_requests")
 public class AbsenceRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,28 +34,25 @@ public class AbsenceRequest {
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "department_approval", nullable = false)
-    private ApprovalStatus departmentApproval;
+    @Column(name = "manager_approval", nullable = false)
+    private ApprovalStatus managerApproval;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ctsv_approval", nullable = false) // CTSV stands for "Công tác Sinh viên"
-    private ApprovalStatus ctsvApproval;
+    @Column(name = "academic_affairs_approval", nullable = false)
+    private ApprovalStatus academicAffairsApproval;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    // The 'approver' field is removed as there are now multiple approval levels.
-    // You can add separate fields for department_approver_id and ctsv_approver_id if needed.
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         // Set default approval statuses on creation
-        if (departmentApproval == null) {
-            departmentApproval = ApprovalStatus.PENDING;
+        if (managerApproval == null) {
+            managerApproval = ApprovalStatus.PENDING;
         }
-        if (ctsvApproval == null) {
-            ctsvApproval = ApprovalStatus.PENDING;
+        if (academicAffairsApproval == null) {
+            academicAffairsApproval = ApprovalStatus.PENDING;
         }
     }
 }

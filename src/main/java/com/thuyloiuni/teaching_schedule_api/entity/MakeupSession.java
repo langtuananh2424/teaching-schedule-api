@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "makeup_sessions") // Corrected table name
+@Table(name = "makeup_sessions")
 public class MakeupSession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,7 +23,7 @@ public class MakeupSession {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "absent_session_id", nullable = false)
-    private Schedule absentSchedule; // Renamed for clarity
+    private Schedule absentSchedule;
 
     @Column(name = "makeup_date", nullable = false)
     private LocalDateTime makeupDate;
@@ -38,12 +38,12 @@ public class MakeupSession {
     private String makeupClassroom;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "department_approval", nullable = false)
-    private ApprovalStatus departmentApproval;
+    @Column(name = "manager_approval", nullable = false)
+    private ApprovalStatus managerApproval;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ctsv_approval", nullable = false)
-    private ApprovalStatus ctsvApproval;
+    @Column(name = "academic_affairs_approval", nullable = false)
+    private ApprovalStatus academicAffairsApproval;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -52,11 +52,11 @@ public class MakeupSession {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         // Set default approval statuses on creation
-        if (departmentApproval == null) {
-            departmentApproval = ApprovalStatus.PENDING;
+        if (managerApproval == null) {
+            managerApproval = ApprovalStatus.PENDING;
         }
-        if (ctsvApproval == null) {
-            ctsvApproval = ApprovalStatus.PENDING;
+        if (academicAffairsApproval == null) {
+            academicAffairsApproval = ApprovalStatus.PENDING;
         }
     }
 }

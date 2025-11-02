@@ -16,8 +16,8 @@ public interface MakeupSessionMapper {
     @Mapping(source = "makeupEndPeriod", target = "makeupEndPeriod")
     @Mapping(source = "makeupClassroom", target = "makeupClassroom")
     @Mapping(source = "createdAt", target = "createdAt")
-    @Mapping(source = "departmentApproval", target = "departmentStatus")
-    @Mapping(source = "ctsvApproval", target = "ctsvStatus")
+    @Mapping(source = "managerApproval", target = "managerStatus")
+    @Mapping(source = "academicAffairsApproval", target = "academicAffairsStatus")
     MakeupSessionDTO toDto(MakeupSession makeupSession);
 
     List<MakeupSessionDTO> toDtoList(List<MakeupSession> makeupSessions);
