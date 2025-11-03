@@ -38,7 +38,7 @@ public class AbsenceRequestController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and #createDto.lecturerId == principal.lecturerId)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Tạo một đơn xin nghỉ mới", description = "Cho phép ADMIN tạo đơn xin nghỉ cho bất kỳ giảng viên nào, hoặc LECTURER tự tạo đơn xin nghỉ cho chính mình.")
     public ResponseEntity<AbsenceRequestDTO> createRequest(@Valid @RequestBody CreateAbsenceRequestDTO createDto) {
         AbsenceRequestDTO createdRequest = absenceRequestService.createRequest(createDto);
@@ -46,7 +46,7 @@ public class AbsenceRequestController {
     }
 
     @PatchMapping("/{id}/manager-approval")
-    @PreAuthorize("hasRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasRole('MANAGER')")
     @Operation(summary = "Cập nhật trạng thái duyệt của Trưởng khoa (Manager)", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Trưởng khoa (Manager). Chỉ Manager mới có quyền này.")
     public ResponseEntity<AbsenceRequestDTO> updateManagerApproval(
             @PathVariable("id") Integer requestId,
@@ -56,7 +56,7 @@ public class AbsenceRequestController {
     }
 
     @PatchMapping("/{id}/academic-affairs-approval")
-    @PreAuthorize("hasRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật trạng thái duyệt của Phòng Đào tạo", description = "Thiết lập trạng thái duyệt (Đã duyệt hoặc Đã từ chối) cho cấp Phòng Đào tạo.")
     public ResponseEntity<AbsenceRequestDTO> updateAcademicAffairsApproval(
             @PathVariable("id") Integer requestId,

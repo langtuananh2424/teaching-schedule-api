@@ -1,6 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.security;
 
-import com.thuyloiuni.teaching_schedule_api.security.CustomUserDetails;
+import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
@@ -28,22 +28,20 @@ public class JwtTokenProvider {
     private int jwtExpirationInMs;
 
     public String generateToken(Authentication authentication) {
-        // Cast the principal to your custom UserDetails class
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
+        Lecturer lecturer = userPrincipal.getLecturer();
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
-        // Get the roles
         List<String> roles = userPrincipal.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        // Build the JWT token with additional claims
         return Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
-                .claim("id", userPrincipal.getId())
-                .claim("fullName", userPrincipal.getFullName())
+                .setSubject(lecturer.getEmail())
+                .claim("id", lecturer.getLecturerId())
+                .claim("fullName", lecturer.getFullName())
                 .claim("roles", roles)
                 .setIssuedAt(new Date())
                 .setExpiration(expiryDate)
@@ -77,7 +75,6 @@ public class JwtTokenProvider {
         }
         return false;
     }
-
 
     private Key getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes();

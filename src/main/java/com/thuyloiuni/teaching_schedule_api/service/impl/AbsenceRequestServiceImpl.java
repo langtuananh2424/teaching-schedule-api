@@ -14,6 +14,7 @@ import com.thuyloiuni.teaching_schedule_api.repository.AbsenceRequestRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.LecturerRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.MakeupSessionRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
+import com.thuyloiuni.teaching_schedule_api.security.CustomUserDetails;
 import com.thuyloiuni.teaching_schedule_api.service.AbsenceRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,6 +70,15 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     @Override
     @Transactional
     public AbsenceRequestDTO createRequest(CreateAbsenceRequestDTO createDto) {
+        Lecturer currentUser = getCurrentUser();
+
+        // Security Check: If the user is a LECTURER, they can only create requests for themselves.
+        if (currentUser.getRole() == RoleType.LECTURER) {
+            if (!Objects.equals(createDto.getLecturerId(), currentUser.getLecturerId())) {
+                throw new AccessDeniedException("Lecturers can only create absence requests for themselves.");
+            }
+        }
+
         Schedule schedule = scheduleRepository.findById(createDto.getSessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with ID: " + createDto.getSessionId()));
 
@@ -155,9 +166,6 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
 
     private AbsenceRequestDTO mapToDtoWithDetails(AbsenceRequest request) {
         AbsenceRequestDTO dto = absenceRequestMapper.toDto(request);
-        // This manual mapping is no longer needed as MapStruct handles it.
-        // dto.setManagerStatus(request.getManagerApproval());
-        // dto.setAcademicAffairsStatus(request.getAcademicAffairsApproval());
 
         Schedule originalSchedule = request.getSchedule();
         if (originalSchedule != null) {
@@ -177,6 +185,14 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AccessDeniedException("User is not authenticated.");
         }
-        return (Lecturer) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails) {
+            return ((CustomUserDetails) principal).getLecturer();
+        }
+        // This fallback might be useful if you have other user types or in tests
+        if (principal instanceof Lecturer) {
+            return (Lecturer) principal;
+        }
+        throw new IllegalStateException("The user principal is not of an expected type.");
     }
 }

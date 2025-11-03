@@ -12,6 +12,7 @@ import com.thuyloiuni.teaching_schedule_api.mapper.LecturerMapper;
 import com.thuyloiuni.teaching_schedule_api.mapper.StudentClassMapper;
 import com.thuyloiuni.teaching_schedule_api.mapper.SubjectMapper;
 import com.thuyloiuni.teaching_schedule_api.repository.*;
+import com.thuyloiuni.teaching_schedule_api.security.CustomUserDetails;
 import com.thuyloiuni.teaching_schedule_api.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -40,8 +41,8 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional(readOnly = true)
     public List<SubjectDTO> getSubjectsBySemester(Integer semesterId) {
-        List<Subject> subjects = assignmentRepository.findSubjectsBySemesterId(semesterId);
         Lecturer currentUser = getCurrentUser();
+        List<Subject> subjects = assignmentRepository.findSubjectsBySemesterId(semesterId);
 
         if (currentUser.getRole() == RoleType.MANAGER) {
             Department managerDept = currentUser.getDepartment();
@@ -57,8 +58,8 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional(readOnly = true)
     public List<LecturerDTO> getLecturersBySemesterAndSubject(Integer semesterId, Integer subjectId) {
-        List<Lecturer> lecturers = assignmentRepository.findLecturersBySemesterAndSubject(semesterId, subjectId);
         Lecturer currentUser = getCurrentUser();
+        List<Lecturer> lecturers = assignmentRepository.findLecturersBySemesterAndSubject(semesterId, subjectId);
 
         if (currentUser.getRole() == RoleType.MANAGER) {
             Department managerDept = currentUser.getDepartment();
@@ -113,9 +114,16 @@ public class ReportServiceImpl implements ReportService {
 
     private Lecturer getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Lecturer)) {
-            throw new AccessDeniedException("User is not authenticated or not a valid lecturer.");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("User is not authenticated.");
         }
-        return (Lecturer) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails) {
+            return ((CustomUserDetails) principal).getLecturer();
+        }
+        if (principal instanceof Lecturer) {
+            return (Lecturer) principal;
+        }
+        throw new IllegalStateException("The user principal is not of an expected type.");
     }
 }

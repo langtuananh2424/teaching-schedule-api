@@ -14,6 +14,7 @@ import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
 import com.thuyloiuni.teaching_schedule_api.mapper.MakeupSessionMapper;
 import com.thuyloiuni.teaching_schedule_api.repository.MakeupSessionRepository;
 import com.thuyloiuni.teaching_schedule_api.repository.ScheduleRepository;
+import com.thuyloiuni.teaching_schedule_api.security.CustomUserDetails;
 import com.thuyloiuni.teaching_schedule_api.service.MakeupSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -76,7 +77,6 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         newSession.setMakeupStartPeriod(createDto.getMakeupStartPeriod());
         newSession.setMakeupEndPeriod(createDto.getMakeupEndPeriod());
         newSession.setMakeupClassroom(createDto.getMakeupClassroom());
-        // Default statuses are set in the entity constructor or here if needed
         newSession.setManagerApproval(ApprovalStatus.PENDING);
         newSession.setAcademicAffairsApproval(ApprovalStatus.PENDING);
 
@@ -120,14 +120,12 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     private MakeupSessionDTO updateAndNotify(MakeupSession session) {
         MakeupSession updatedSession = makeupSessionRepository.save(session);
 
-        // Check if both approvals are granted
         if (session.getManagerApproval() == ApprovalStatus.APPROVED && session.getAcademicAffairsApproval() == ApprovalStatus.APPROVED) {
             createScheduleForMakeupSession(session);
         }
 
         MakeupSessionDTO updatedDto = mapToDtoWithDetails(updatedSession);
 
-        // Notify the lecturer who created the request
         Integer lecturerId = session.getAbsentSchedule().getAssignment().getLecturer().getLecturerId();
         messagingTemplate.convertAndSend("/topic/lecturer/" + lecturerId, updatedDto);
 
@@ -137,7 +135,6 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     private void createScheduleForMakeupSession(MakeupSession makeupSession) {
         Schedule absentSchedule = makeupSession.getAbsentSchedule();
 
-        // Create and save the new schedule for the makeup session
         Schedule newSchedule = new Schedule();
         newSchedule.setAssignment(absentSchedule.getAssignment());
         newSchedule.setSessionDate(makeupSession.getMakeupDate());
@@ -149,7 +146,6 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         newSchedule.setNotes("Buổi dạy bù cho lịch nghỉ có ID: " + absentSchedule.getSessionId());
         scheduleRepository.save(newSchedule);
 
-        // Update the status of the original, absent schedule to 'TAUGHT'
         absentSchedule.setStatus(ScheduleStatus.TAUGHT);
         scheduleRepository.save(absentSchedule);
     }
@@ -163,6 +159,13 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AccessDeniedException("User is not authenticated.");
         }
-        return (Lecturer) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails) {
+            return ((CustomUserDetails) principal).getLecturer();
+        }
+        if (principal instanceof Lecturer) {
+            return (Lecturer) principal;
+        }
+        throw new IllegalStateException("The user principal is not of an expected type.");
     }
 }

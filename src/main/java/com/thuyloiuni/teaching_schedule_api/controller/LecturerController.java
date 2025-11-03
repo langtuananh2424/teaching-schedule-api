@@ -104,7 +104,7 @@ public class LecturerController {
                                            @Valid @RequestBody UpdatePasswordDTO passwordDTO,
                                            @AuthenticationPrincipal CustomUserDetails currentUser) {
         // A user can only change their own password, unless they are an admin.
-        if (!currentUser.getId().equals(id.longValue()) && !currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+        if (!currentUser.getLecturer().getLecturerId().equals(id) && !currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN); 
         }
 
