@@ -3,10 +3,7 @@ package com.thuyloiuni.teaching_schedule_api.service.impl;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateMakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.MakeupSessionDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
-import com.thuyloiuni.teaching_schedule_api.entity.Department;
-import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
-import com.thuyloiuni.teaching_schedule_api.entity.MakeupSession;
-import com.thuyloiuni.teaching_schedule_api.entity.Schedule;
+import com.thuyloiuni.teaching_schedule_api.entity.*;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ScheduleStatus;
@@ -39,17 +36,19 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     @Override
     @Transactional(readOnly = true)
     public List<MakeupSessionDTO> getAllMakeupSessions() {
-        Lecturer currentUser = getCurrentUser();
+        User currentUser = getCurrentUser();
         List<MakeupSession> sessions;
 
         if (currentUser.getRole() == RoleType.MANAGER) {
-            // Manager sees requests from their department only
-            Department managerDepartment = currentUser.getDepartment();
+            Lecturer managerLecturerInfo = currentUser.getLecturer();
+            if (managerLecturerInfo == null) {
+                throw new IllegalStateException("A user with MANAGER role must have an associated lecturer profile.");
+            }
+            Department managerDepartment = managerLecturerInfo.getDepartment();
             sessions = makeupSessionRepository.findAll().stream()
                     .filter(session -> session.getAbsentSchedule().getAssignment().getLecturer().getDepartment().equals(managerDepartment))
                     .collect(Collectors.toList());
-        } else {
-            // ADMIN sees all requests
+        } else { // ADMIN
             sessions = makeupSessionRepository.findAll();
         }
 
@@ -91,12 +90,17 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
     @Override
     @Transactional
     public MakeupSessionDTO updateManagerApproval(Integer id, UpdateApprovalStatusDTO statusDto) {
-        Lecturer manager = getCurrentUser();
+        User managerUser = getCurrentUser();
+        Lecturer managerLecturerInfo = managerUser.getLecturer();
+
+        if (managerLecturerInfo == null) {
+            throw new IllegalStateException("A user with MANAGER role must have an associated lecturer profile to approve requests.");
+        }
+
         MakeupSession session = findSessionById(id);
 
-        // Security check: Manager can only approve requests from their own department
         Department requestDepartment = session.getAbsentSchedule().getAssignment().getLecturer().getDepartment();
-        if (!manager.getDepartment().equals(requestDepartment)) {
+        if (!managerLecturerInfo.getDepartment().equals(requestDepartment)) {
             throw new AccessDeniedException("Manager can only approve requests from their own department.");
         }
 
@@ -126,8 +130,10 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
 
         MakeupSessionDTO updatedDto = mapToDtoWithDetails(updatedSession);
 
-        Integer lecturerId = session.getAbsentSchedule().getAssignment().getLecturer().getLecturerId();
-        messagingTemplate.convertAndSend("/topic/lecturer/" + lecturerId, updatedDto);
+        if (session.getAbsentSchedule() != null && session.getAbsentSchedule().getAssignment() != null && session.getAbsentSchedule().getAssignment().getLecturer() != null && session.getAbsentSchedule().getAssignment().getLecturer().getUser() != null) {
+            Long userId = session.getAbsentSchedule().getAssignment().getLecturer().getUser().getUserId();
+            messagingTemplate.convertAndSend("/topic/user/" + userId, updatedDto);
+        }
 
         return updatedDto;
     }
@@ -154,17 +160,14 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         return makeupSessionMapper.toDto(session);
     }
     
-    private Lecturer getCurrentUser() {
+    private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AccessDeniedException("User is not authenticated.");
         }
         Object principal = authentication.getPrincipal();
         if (principal instanceof CustomUserDetails) {
-            return ((CustomUserDetails) principal).getLecturer();
-        }
-        if (principal instanceof Lecturer) {
-            return (Lecturer) principal;
+            return ((CustomUserDetails) principal).getUser();
         }
         throw new IllegalStateException("The user principal is not of an expected type.");
     }

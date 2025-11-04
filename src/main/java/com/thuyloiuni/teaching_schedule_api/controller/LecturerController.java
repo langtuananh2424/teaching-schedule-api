@@ -3,6 +3,8 @@ package com.thuyloiuni.teaching_schedule_api.controller;
 import com.thuyloiuni.teaching_schedule_api.dto.CreateLecturerRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.LecturerDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdatePasswordDTO;
+import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
+import com.thuyloiuni.teaching_schedule_api.entity.User;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
 import com.thuyloiuni.teaching_schedule_api.security.CustomUserDetails;
 import com.thuyloiuni.teaching_schedule_api.service.LecturerService;
@@ -102,9 +104,14 @@ public class LecturerController {
     @Operation(summary = "Cập nhật mật khẩu của giảng viên", description = "Cho phép người dùng tự cập nhật mật khẩu của mình, hoặc ADMIN cập nhật mật khẩu cho bất kỳ ai.")
     public ResponseEntity<Void> updatePassword(@PathVariable Integer id, 
                                            @Valid @RequestBody UpdatePasswordDTO passwordDTO,
-                                           @AuthenticationPrincipal CustomUserDetails currentUser) {
-        // A user can only change their own password, unless they are an admin.
-        if (!currentUser.getLecturer().getLecturerId().equals(id) && !currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                                           @AuthenticationPrincipal CustomUserDetails currentUserDetails) {
+        User currentUser = currentUserDetails.getUser();
+        Lecturer lecturerInfo = currentUser.getLecturer();
+
+        boolean isOwner = (lecturerInfo != null && lecturerInfo.getLecturerId().equals(id));
+        boolean isAdmin = currentUser.getRole() == RoleType.ADMIN;
+        
+        if (!isOwner && !isAdmin) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN); 
         }
 

@@ -50,7 +50,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Transactional(readOnly = true)
     public List<ScheduleDTO> getSchedulesByLecturerEmail(String email) {
-        return scheduleMapper.toDtoList(scheduleRepository.findByAssignment_Lecturer_Email(email));
+        return scheduleMapper.toDtoList(scheduleRepository.findByAssignment_Lecturer_User_Email(email));
     }
 
     @Override
@@ -84,9 +84,11 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule updatedSchedule = scheduleRepository.save(existingSchedule);
         ScheduleDTO updatedDto = scheduleMapper.toDto(updatedSchedule);
 
-        Integer lecturerId = updatedSchedule.getAssignment().getLecturer().getLecturerId();
-        String destination = "/topic/lecturer/" + lecturerId;
-        messagingTemplate.convertAndSend(destination, updatedDto);
+        if (updatedSchedule.getAssignment() != null && updatedSchedule.getAssignment().getLecturer() != null && updatedSchedule.getAssignment().getLecturer().getUser() != null) {
+            Long userId = updatedSchedule.getAssignment().getLecturer().getUser().getUserId();
+            String destination = "/topic/user/" + userId;
+            messagingTemplate.convertAndSend(destination, updatedDto);
+        }
 
         return updatedDto;
     }

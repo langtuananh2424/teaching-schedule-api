@@ -1,6 +1,7 @@
 package com.thuyloiuni.teaching_schedule_api.security;
 
 import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
+import com.thuyloiuni.teaching_schedule_api.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
@@ -29,7 +30,8 @@ public class JwtTokenProvider {
 
     public String generateToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
-        Lecturer lecturer = userPrincipal.getLecturer();
+        User user = userPrincipal.getUser();
+        Lecturer lecturer = user.getLecturer(); // This can be null for ADMIN accounts
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
@@ -37,11 +39,14 @@ public class JwtTokenProvider {
         List<String> roles = userPrincipal.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
+        
+        // Use lecturer's full name if available, otherwise fallback to email
+        String fullName = (lecturer != null) ? lecturer.getFullName() : user.getEmail();
 
         return Jwts.builder()
-                .setSubject(lecturer.getEmail())
-                .claim("id", lecturer.getLecturerId())
-                .claim("fullName", lecturer.getFullName())
+                .setSubject(user.getEmail())
+                .claim("userId", user.getUserId())
+                .claim("fullName", fullName)
                 .claim("roles", roles)
                 .setIssuedAt(new Date())
                 .setExpiration(expiryDate)

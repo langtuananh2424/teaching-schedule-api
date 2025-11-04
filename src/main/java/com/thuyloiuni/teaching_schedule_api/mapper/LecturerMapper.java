@@ -5,25 +5,42 @@ import com.thuyloiuni.teaching_schedule_api.dto.LecturerDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface LecturerMapper {
 
-    @Mapping(source = "department.departmentId", target = "departmentId")
-    @Mapping(source = "department.departmentName", target = "departmentName")
+    @Mappings({
+        @Mapping(source = "lecturerId", target = "lecturerId"),
+        @Mapping(source = "fullName", target = "fullName"),
+        @Mapping(source = "lecturerCode", target = "lecturerCode"),
+        @Mapping(source = "department.departmentId", target = "departmentId"),
+        @Mapping(source = "department.departmentName", target = "departmentName"),
+        // Map fields from the associated User entity
+        @Mapping(source = "user.email", target = "email"),
+        @Mapping(source = "user.role", target = "role")
+    })
     LecturerDTO toDto(Lecturer lecturer);
 
-    @Mapping(target = "department", ignore = true)
-    @Mapping(target = "assignments", ignore = true)
-    @Mapping(target = "lecturerId", ignore = true) // id is auto-generated
+    @Mappings({
+        @Mapping(target = "lecturerId", ignore = true),
+        @Mapping(target = "department", ignore = true),
+        @Mapping(target = "user", ignore = true), // User will be set in the service layer
+        @Mapping(target = "assignments", ignore = true)
+    })
     Lecturer toEntity(LecturerDTO lecturerDTO);
-
-    @Mapping(target = "department", ignore = true) // Will be set in service
-    @Mapping(target = "assignments", ignore = true)
-    @Mapping(target = "password", ignore = true) // Will be encoded in service
-    @Mapping(target = "lecturerId", ignore = true)
+    
+    // This method is no longer suitable because creating a Lecturer now requires creating a User first.
+    // The logic is now handled in the LecturerServiceImpl.
+    // We keep it here but it should ideally be removed or marked as deprecated.
+    @Mappings({
+        @Mapping(target = "lecturerId", ignore = true),
+        @Mapping(target = "department", ignore = true),
+        @Mapping(target = "user", ignore = true),
+        @Mapping(target = "assignments", ignore = true)
+    })
     Lecturer fromCreateDtoToEntity(CreateLecturerRequestDTO createDto);
 
     List<LecturerDTO> toDtoList(List<Lecturer> lecturers);

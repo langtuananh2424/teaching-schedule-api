@@ -19,6 +19,8 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
 
     Optional<Attendance> findBySchedule_SessionIdAndStudent_StudentId(Integer sessionId, Integer studentId);
 
-    @Query("SELECT att.student.id, COUNT(att) FROM Attendance att WHERE att.schedule.assignment.id = :assignmentId AND att.isPresent = true GROUP BY att.student.id")
+    List<Attendance> findBySchedule_Assignment_AssignmentId(Integer assignmentId);
+
+    @Query("SELECT att.student.studentId, COUNT(att) FROM Attendance att WHERE att.schedule.assignment.assignmentId = :assignmentId AND att.isPresent = true GROUP BY att.student.studentId")
     List<Object[]> countAttendedSessionsByStudentForAssignment(@Param("assignmentId") Integer assignmentId);
 }

@@ -42,16 +42,19 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     @Override
     @Transactional(readOnly = true)
     public List<AbsenceRequestDTO> getAllRequests() {
-        Lecturer currentUser = getCurrentUser();
+        User currentUser = getCurrentUser();
         List<AbsenceRequest> requests;
 
         if (currentUser.getRole() == RoleType.MANAGER) {
-            Department managerDepartment = currentUser.getDepartment();
+            Lecturer managerLecturerInfo = currentUser.getLecturer();
+            if (managerLecturerInfo == null) {
+                throw new IllegalStateException("A user with MANAGER role must have an associated lecturer profile.");
+            }
+            Department managerDepartment = managerLecturerInfo.getDepartment();
             requests = absenceRequestRepository.findAll().stream()
                     .filter(request -> request.getLecturer().getDepartment().equals(managerDepartment))
                     .collect(Collectors.toList());
-        } else {
-            // ADMIN sees all requests
+        } else { // ADMIN
             requests = absenceRequestRepository.findAll();
         }
 
@@ -70,11 +73,14 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     @Override
     @Transactional
     public AbsenceRequestDTO createRequest(CreateAbsenceRequestDTO createDto) {
-        Lecturer currentUser = getCurrentUser();
+        User currentUser = getCurrentUser();
 
-        // Security Check: If the user is a LECTURER, they can only create requests for themselves.
         if (currentUser.getRole() == RoleType.LECTURER) {
-            if (!Objects.equals(createDto.getLecturerId(), currentUser.getLecturerId())) {
+            Lecturer lecturerInfo = currentUser.getLecturer();
+            if (lecturerInfo == null) {
+                throw new IllegalStateException("A user with LECTURER role must have an associated lecturer profile.");
+            }
+            if (!Objects.equals(createDto.getLecturerId(), lecturerInfo.getLecturerId())) {
                 throw new AccessDeniedException("Lecturers can only create absence requests for themselves.");
             }
         }
@@ -129,11 +135,17 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
     @Override
     @Transactional
     public AbsenceRequestDTO updateManagerApproval(Integer requestId, UpdateApprovalStatusDTO statusDto) {
-        Lecturer manager = getCurrentUser();
+        User managerUser = getCurrentUser();
+        Lecturer managerLecturerInfo = managerUser.getLecturer();
+
+        if (managerLecturerInfo == null) {
+            throw new IllegalStateException("A user with MANAGER role must have an associated lecturer profile to approve requests.");
+        }
+
         AbsenceRequest request = findRequestById(requestId);
 
         Department requestDepartment = request.getLecturer().getDepartment();
-        if (!manager.getDepartment().equals(requestDepartment)) {
+        if (!managerLecturerInfo.getDepartment().equals(requestDepartment)) {
             throw new AccessDeniedException("Manager can only approve requests from their own department.");
         }
 
@@ -158,8 +170,11 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         AbsenceRequest updatedRequest = absenceRequestRepository.save(request);
         AbsenceRequestDTO updatedDto = mapToDtoWithDetails(updatedRequest);
 
-        Integer lecturerId = request.getLecturer().getLecturerId();
-        messagingTemplate.convertAndSend("/topic/lecturer/" + lecturerId, updatedDto);
+        // To notify the user, we need to get the user from the lecturer
+        if(request.getLecturer() != null && request.getLecturer().getUser() != null) {
+            Long userId = request.getLecturer().getUser().getUserId();
+            messagingTemplate.convertAndSend("/topic/user/" + userId, updatedDto);
+        }
 
         return updatedDto;
     }
@@ -180,18 +195,14 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         return dto;
     }
 
-    private Lecturer getCurrentUser() {
+    private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AccessDeniedException("User is not authenticated.");
         }
         Object principal = authentication.getPrincipal();
         if (principal instanceof CustomUserDetails) {
-            return ((CustomUserDetails) principal).getLecturer();
-        }
-        // This fallback might be useful if you have other user types or in tests
-        if (principal instanceof Lecturer) {
-            return (Lecturer) principal;
+            return ((CustomUserDetails) principal).getUser();
         }
         throw new IllegalStateException("The user principal is not of an expected type.");
     }

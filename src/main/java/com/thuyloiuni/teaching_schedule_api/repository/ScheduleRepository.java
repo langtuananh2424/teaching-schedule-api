@@ -15,7 +15,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Integer> {
 
     List<Schedule> findByStatus(ScheduleStatus status);
 
-    List<Schedule> findByAssignment_Lecturer_Email(String email);
+    List<Schedule> findByAssignment_Lecturer_User_Email(String email);
 
     @Query("SELECT COALESCE(SUM(s.endPeriod - s.startPeriod + 1), 0) FROM Schedule s WHERE s.assignment.id = :assignmentId AND s.status = 'TAUGHT'")
     int sumTaughtPeriodsByAssignmentId(@Param("assignmentId") Integer assignmentId);

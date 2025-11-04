@@ -1,5 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.dto.report;
 
+import com.thuyloiuni.teaching_schedule_api.dto.ScheduleDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,9 @@ public class LecturerActivityReportDTO {
     // --- Period Statistics ---
     private Periods plannedPeriods;
     private Periods taughtPeriods;
+
+    // --- Schedule Details ---
+    private List<ScheduleDTO> schedules;
 
     // --- Student Attendance Details ---
     private List<StudentAttendanceReportDTO> studentAttendanceReports;

@@ -1,7 +1,7 @@
 package com.thuyloiuni.teaching_schedule_api.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.thuyloiuni.teaching_schedule_api.entity.Lecturer;
+import com.thuyloiuni.teaching_schedule_api.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,37 +10,34 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 @AllArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
     @Getter
-    @JsonIgnore // Important to avoid circular serialization
-    private final Lecturer lecturer;
+    @JsonIgnore
+    private final User user;
 
-    public static CustomUserDetails create(Lecturer lecturer) {
-        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + lecturer.getRole().name()));
-        return new CustomUserDetails(lecturer);
+    public static CustomUserDetails create(User user) {
+        return new CustomUserDetails(user);
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + lecturer.getRole().name()));
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 
     @Override
     public String getPassword() {
-        return lecturer.getPassword();
+        return user.getPassword();
     }
 
     @Override
     public String getUsername() {
-        return lecturer.getEmail();
+        return user.getEmail();
     }
 
-    // The methods below are usually for account status checks
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -66,11 +63,11 @@ public class CustomUserDetails implements UserDetails {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CustomUserDetails that = (CustomUserDetails) o;
-        return Objects.equals(lecturer.getLecturerId(), that.lecturer.getLecturerId());
+        return Objects.equals(user.getUserId(), that.user.getUserId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(lecturer.getLecturerId());
+        return Objects.hash(user.getUserId());
     }
 }

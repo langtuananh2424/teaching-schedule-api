@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
-@Tag(name = "Report", description = "Các API để tạo và truy xuất các loại báo cáo")
+@Tag(name = "Báo cáo", description = "Các API để tạo và truy xuất các loại báo cáo")
 public class ReportController {
 
     private final ReportService reportService;
@@ -56,9 +56,13 @@ public class ReportController {
 
     @GetMapping("/lecturer-activity")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @Operation(summary = "Tạo báo cáo hoạt động của giảng viên", description = "Tạo báo cáo chi tiết hoạt động của giảng viên. ADMIN có thể xem của bất kỳ ai, MANAGER chỉ có thể xem của giảng viên trong khoa mình.")
-    public ResponseEntity<LecturerActivityReportDTO> getLecturerActivityReport(@RequestParam Integer assignmentId) {
-        LecturerActivityReportDTO report = reportService.getLecturerActivityReport(assignmentId);
+    @Operation(summary = "Tạo báo cáo hoạt động của giảng viên", description = "Tạo báo cáo chi tiết hoạt động của giảng viên dựa trên học kỳ, môn học, giảng viên và lớp học. ADMIN có thể xem của bất kỳ ai, MANAGER chỉ có thể xem của giảng viên trong khoa mình.")
+    public ResponseEntity<LecturerActivityReportDTO> getLecturerActivityReport(
+            @RequestParam Integer semesterId,
+            @RequestParam Integer subjectId,
+            @RequestParam Integer lecturerId,
+            @RequestParam Integer classId) {
+        LecturerActivityReportDTO report = reportService.getLecturerActivityReport(semesterId, subjectId, lecturerId, classId);
         return ResponseEntity.ok(report);
     }
 }

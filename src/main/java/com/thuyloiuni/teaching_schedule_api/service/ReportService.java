@@ -9,30 +9,15 @@ import java.util.List;
 
 public interface ReportService {
     
-    /**
-     * Retrieves subjects for filtering based on user role.
-     * - ADMIN sees all subjects.
-     * - MANAGER sees only subjects belonging to their department.
-     */
     List<SubjectDTO> getSubjectsBySemester(Integer semesterId);
 
-    /**
-     * Retrieves lecturers for filtering based on user role.
-     * - ADMIN sees all lecturers.
-     * - MANAGER sees only lecturers from their department.
-     */
     List<LecturerDTO> getLecturersBySemesterAndSubject(Integer semesterId, Integer subjectId);
 
-    /**
-     * Retrieves student classes for filtering based on user role.
-     * - ADMIN sees all classes.
-     * - MANAGER sees only classes taught by lecturers from their department.
-     */
     List<StudentClassDTO> getClassesBySemesterAndSubjectAndLecturer(Integer semesterId, Integer subjectId, Integer lecturerId);
 
     /**
-     * Generates a detailed activity report for a specific lecturer assignment.
+     * Generates a detailed activity report for a specific lecturer assignment, found by the given parameters.
      * A security check is performed to ensure a MANAGER can only access reports for lecturers in their own department.
      */
-    LecturerActivityReportDTO getLecturerActivityReport(Integer assignmentId);
+    LecturerActivityReportDTO getLecturerActivityReport(Integer semesterId, Integer subjectId, Integer lecturerId, Integer classId);
 }
