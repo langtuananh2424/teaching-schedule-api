@@ -1,5 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.service;
 
+import com.thuyloiuni.teaching_schedule_api.dto.AdminResetPasswordDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateUserRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UserDTO;
 
@@ -13,4 +14,6 @@ public interface UserService {
     UserDTO updateUser(Long userId, UpdateUserRequestDTO userDetails);
 
     void deleteUser(Long userId);
+
+    void adminResetPassword(Long userId, AdminResetPasswordDTO passwordDTO);
 }

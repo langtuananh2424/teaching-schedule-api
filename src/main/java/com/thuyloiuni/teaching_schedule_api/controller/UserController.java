@@ -1,5 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.controller;
 
+import com.thuyloiuni.teaching_schedule_api.dto.AdminResetPasswordDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateUserRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UserDTO;
 import com.thuyloiuni.teaching_schedule_api.service.UserService;
@@ -17,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "Các API để quản lý tài khoản người dùng (chỉ dành cho ADMIN)")
+@Tag(name = "User", description = "Các API để quản lý tài khoản người dùng (chỉ dành cho ADMIN)")
 @SecurityRequirement(name = "bearerAuth")
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
@@ -46,6 +47,13 @@ public class UserController {
     @Operation(summary = "Xóa người dùng", description = "Xóa một tài khoản người dùng. Chỉ có thể thực hiện được nếu người dùng đó không được liên kết với một hồ sơ giảng viên.")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/password")
+    @Operation(summary = "[ADMIN] Đặt lại mật khẩu người dùng", description = "ADMIN đặt lại mật khẩu cho một người dùng bất kỳ. Không yêu cầu mật khẩu cũ.")
+    public ResponseEntity<Void> adminResetPassword(@PathVariable Long id, @Valid @RequestBody AdminResetPasswordDTO passwordDTO) {
+        userService.adminResetPassword(id, passwordDTO);
         return ResponseEntity.noContent().build();
     }
 }

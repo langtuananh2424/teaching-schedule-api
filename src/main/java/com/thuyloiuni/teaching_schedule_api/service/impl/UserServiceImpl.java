@@ -1,5 +1,6 @@
 package com.thuyloiuni.teaching_schedule_api.service.impl;
 
+import com.thuyloiuni.teaching_schedule_api.dto.AdminResetPasswordDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UpdateUserRequestDTO;
 import com.thuyloiuni.teaching_schedule_api.dto.UserDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.User;
@@ -8,6 +9,7 @@ import com.thuyloiuni.teaching_schedule_api.mapper.UserMapper;
 import com.thuyloiuni.teaching_schedule_api.repository.UserRepository;
 import com.thuyloiuni.teaching_schedule_api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -21,6 +23,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional(readOnly = true)
@@ -65,12 +68,20 @@ public class UserServiceImpl implements UserService {
         User userToDelete = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId));
 
-        // Business Rule: Prevent deleting a user that is linked to a lecturer.
-        // The lecturer must be deleted first, which will cascade and delete the user.
         if(userToDelete.getLecturer() != null) {
             throw new IllegalStateException("Không thể xóa người dùng này vì họ đã được liên kết với một giảng viên. Vui lòng xóa thông tin giảng viên trước.");
         }
 
         userRepository.delete(userToDelete);
+    }
+
+    @Override
+    @Transactional
+    public void adminResetPassword(Long userId, AdminResetPasswordDTO passwordDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId));
+
+        user.setPassword(passwordEncoder.encode(passwordDTO.getNewPassword()));
+        userRepository.save(user);
     }
 }

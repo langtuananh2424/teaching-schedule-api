@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
-@Tag(name = "Báo cáo", description = "Các API để tạo và truy xuất các loại báo cáo")
+@Tag(name = "Report", description = "Các API để tạo và truy xuất các loại báo cáo")
 public class ReportController {
 
     private final ReportService reportService;
