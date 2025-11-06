@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +47,7 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
             }
             Department managerDepartment = managerLecturerInfo.getDepartment();
             sessions = makeupSessionRepository.findAll().stream()
-                    .filter(session -> session.getAbsentSchedule().getAssignment().getLecturer().getDepartment().equals(managerDepartment))
+                    .filter(session -> Objects.equals(session.getAbsentSchedule().getAssignment().getLecturer().getDepartment().getDepartmentId(), managerDepartment.getDepartmentId()))
                     .collect(Collectors.toList());
         } else { // ADMIN
             sessions = makeupSessionRepository.findAll();
@@ -100,7 +101,7 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         MakeupSession session = findSessionById(id);
 
         Department requestDepartment = session.getAbsentSchedule().getAssignment().getLecturer().getDepartment();
-        if (!managerLecturerInfo.getDepartment().equals(requestDepartment)) {
+        if (!Objects.equals(managerLecturerInfo.getDepartment().getDepartmentId(), requestDepartment.getDepartmentId())) {
             throw new AccessDeniedException("Manager can only approve requests from their own department.");
         }
 
@@ -150,16 +151,17 @@ public class MakeupSessionServiceImpl implements MakeupSessionService {
         newSchedule.setLessonOrder(absentSchedule.getLessonOrder());
         newSchedule.setStatus(ScheduleStatus.NOT_TAUGHT);
         newSchedule.setNotes("Buổi dạy bù cho lịch nghỉ có ID: " + absentSchedule.getSessionId());
-        scheduleRepository.save(newSchedule);
+        Schedule savedMakeupSchedule = scheduleRepository.save(newSchedule);
 
-        absentSchedule.setStatus(ScheduleStatus.TAUGHT);
-        scheduleRepository.save(absentSchedule);
+        makeupSession.setMakeupSchedule(savedMakeupSchedule);
+        makeupSessionRepository.save(makeupSession);
     }
+
 
     private MakeupSessionDTO mapToDtoWithDetails(MakeupSession session) {
         return makeupSessionMapper.toDto(session);
     }
-    
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {

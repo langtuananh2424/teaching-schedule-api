@@ -10,9 +10,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface AbsenceRequestMapper {
 
-    @Mapping(source = "requestId", target = "id")
-    @Mapping(source = "reason", target = "reason")
-    @Mapping(source = "createdAt", target = "createdAt")
+    @Mapping(source = "requestId", target = "absenceRequestId")
     @Mapping(source = "managerApproval", target = "managerStatus")
     @Mapping(source = "academicAffairsApproval", target = "academicAffairsStatus")
     @Mapping(source = "lecturer.fullName", target = "lecturerName")

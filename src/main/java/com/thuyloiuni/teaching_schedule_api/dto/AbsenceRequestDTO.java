@@ -7,35 +7,30 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * DTO for representing an absence request with detailed approval statuses.
- */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AbsenceRequestDTO {
-
-    // ---- Request Information ----
-    private Integer id;
-    private final String requestType = "Xin nghỉ dạy";
+    // --- Absence Request Info ---
+    private Integer absenceRequestId;
     private String reason;
     private LocalDateTime createdAt;
 
-    // --- Approval Statuses ---
-    private ApprovalStatus managerStatus;       // Manager's (Head of Dept) approval status
-    private ApprovalStatus academicAffairsStatus; // Academic Affairs' approval status
-
-    // ---- Lecturer Information ----
+    // --- Lecturer and Class Info ---
     private String lecturerName;
-
-    // ---- Original Session Information ----
     private String subjectName;
     private String className;
+
+    // --- Original Session Info ---
     private LocalDate sessionDate;
     private Integer startPeriod;
     private Integer endPeriod;
     private String classroom;
 
-    // ---- Proposed Makeup Session (optional) ----
+    // --- Approval Statuses ---
+    private ApprovalStatus managerStatus;
+    private ApprovalStatus academicAffairsStatus;
+
+    // --- Makeup Session Info (if exists) ---
     private LocalDateTime makeupCreatedAt;
     private LocalDate makeupDate;
     private Integer makeupStartPeriod;

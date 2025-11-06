@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,7 +43,6 @@ public class ReportServiceImpl implements ReportService {
     private final StudentClassMapper studentClassMapper;
     private final ScheduleMapper scheduleMapper;
 
-    // ... other methods ...
     @Override
     @Transactional(readOnly = true)
     public List<SubjectDTO> getSubjectsBySemester(Integer semesterId) {
@@ -56,7 +56,7 @@ public class ReportServiceImpl implements ReportService {
             }
             Department managerDept = managerLecturerInfo.getDepartment();
             return subjects.stream()
-                    .filter(subject -> subject.getDepartment().equals(managerDept))
+                    .filter(subject -> subject.getDepartment().getDepartmentId().equals(managerDept.getDepartmentId()))
                     .map(subjectMapper::toDto)
                     .collect(Collectors.toList());
         }
@@ -77,7 +77,7 @@ public class ReportServiceImpl implements ReportService {
             }
             Department managerDept = managerLecturerInfo.getDepartment();
             return lecturers.stream()
-                    .filter(lecturer -> lecturer.getDepartment().equals(managerDept))
+                    .filter(lecturer -> lecturer.getDepartment().getDepartmentId().equals(managerDept.getDepartmentId()))
                     .map(lecturerMapper::toDto)
                     .collect(Collectors.toList());
         }
@@ -97,7 +97,8 @@ public class ReportServiceImpl implements ReportService {
             }
             Lecturer targetLecturer = lecturerRepository.findById(lecturerId)
                     .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found with ID: " + lecturerId));
-            if (!targetLecturer.getDepartment().equals(managerLecturerInfo.getDepartment())) {
+
+            if (!Objects.equals(targetLecturer.getDepartment().getDepartmentId(), managerLecturerInfo.getDepartment().getDepartmentId())) {
                 throw new AccessDeniedException("Manager can only view classes of lecturers in their own department.");
             }
         }
@@ -119,7 +120,7 @@ public class ReportServiceImpl implements ReportService {
             if (managerLecturerInfo == null) {
                 throw new IllegalStateException("A user with MANAGER role must have an associated lecturer profile.");
             }
-            if (!assignment.getLecturer().getDepartment().equals(managerLecturerInfo.getDepartment())) {
+            if (!Objects.equals(assignment.getLecturer().getDepartment().getDepartmentId(), managerLecturerInfo.getDepartment().getDepartmentId())) {
                 throw new AccessDeniedException("Manager can only view reports of lecturers in their own department.");
             }
         }

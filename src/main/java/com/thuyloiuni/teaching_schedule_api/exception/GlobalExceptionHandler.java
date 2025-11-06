@@ -1,21 +1,22 @@
 package com.thuyloiuni.teaching_schedule_api.exception;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @ControllerAdvice // Đánh dấu lớp này để xử lý exception trên toàn bộ ứng dụng
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler { // Kế thừa để override một số method xử lý exception của Spring
@@ -28,6 +29,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler { // 
         logger.error("ResourceNotFoundException: {} on path {}", ex.getMessage(), request.getDescription(false));
         ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false));
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+    }
+
+    // Xử lý AccessDeniedException
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorDetails> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
+        logger.warn("AccessDeniedException: {} on path {}", ex.getMessage(), request.getDescription(false));
+        ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false));
+        return new ResponseEntity<>(errorDetails, HttpStatus.FORBIDDEN);
     }
 
     // Xử lý IllegalArgumentException (ví dụ: tên khoa bị trùng, đầu vào không hợp lệ khác)

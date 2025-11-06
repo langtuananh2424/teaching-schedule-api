@@ -9,11 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface MakeupSessionRepository extends JpaRepository<MakeupSession, Integer> {
-
-    /**
-     * Finds a makeup session based on the original absent schedule.
-     * This is crucial for checking for duplicate makeup sessions.
-     */
     Optional<MakeupSession> findByAbsentSchedule(Schedule absentSchedule);
 
+    boolean existsByAbsentSchedule_SessionId(Integer sessionId);
+
+    boolean existsByMakeupSchedule_SessionId(Integer sessionId);
 }

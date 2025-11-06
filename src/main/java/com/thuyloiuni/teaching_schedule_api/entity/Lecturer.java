@@ -30,7 +30,7 @@ public class Lecturer {
     @JoinColumn(name = "department_id", referencedColumnName = "department_id", nullable = false)
     private Department department;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
     private User user;
 

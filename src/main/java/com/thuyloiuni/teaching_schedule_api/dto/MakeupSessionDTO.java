@@ -11,6 +11,13 @@ import java.time.LocalDateTime;
 public class MakeupSessionDTO {
     private Integer makeupSessionId;
     private Integer absentSessionId; // ID of the original absent session
+
+    // --- Thông tin buổi học gốc ---
+    private String subjectName;
+    private String className;
+    private String lecturerName;
+
+    // --- Thông tin buổi dạy bù ---
     private LocalDateTime makeupDate;
     private Integer makeupStartPeriod;
     private Integer makeupEndPeriod;

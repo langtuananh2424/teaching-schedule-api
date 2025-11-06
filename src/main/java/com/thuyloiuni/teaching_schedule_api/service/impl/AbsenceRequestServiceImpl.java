@@ -6,6 +6,7 @@ import com.thuyloiuni.teaching_schedule_api.dto.UpdateApprovalStatusDTO;
 import com.thuyloiuni.teaching_schedule_api.entity.*;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.ApprovalStatus;
 import com.thuyloiuni.teaching_schedule_api.entity.enums.RoleType;
+import com.thuyloiuni.teaching_schedule_api.entity.enums.ScheduleStatus;
 import com.thuyloiuni.teaching_schedule_api.exception.BadRequestException;
 import com.thuyloiuni.teaching_schedule_api.exception.RequestConflictException;
 import com.thuyloiuni.teaching_schedule_api.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -52,7 +54,7 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
             }
             Department managerDepartment = managerLecturerInfo.getDepartment();
             requests = absenceRequestRepository.findAll().stream()
-                    .filter(request -> request.getLecturer().getDepartment().equals(managerDepartment))
+                    .filter(request -> Objects.equals(request.getLecturer().getDepartment().getDepartmentId(), managerDepartment.getDepartmentId()))
                     .collect(Collectors.toList());
         } else { // ADMIN
             requests = absenceRequestRepository.findAll();
@@ -90,6 +92,10 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
 
         validateAbsenceRequest(schedule, createDto);
 
+        // Update schedule status to pending approval
+        schedule.setStatus(ScheduleStatus.ABSENT_UNAPPROVED);
+        scheduleRepository.save(schedule);
+
         Lecturer lecturer = lecturerRepository.findById(createDto.getLecturerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found with ID: " + createDto.getLecturerId()));
 
@@ -108,7 +114,13 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
             makeupSession.setMakeupDate(createDto.getMakeupDate());
             makeupSession.setMakeupStartPeriod(createDto.getMakeupStartPeriod());
             makeupSession.setMakeupEndPeriod(createDto.getMakeupEndPeriod());
-            makeupSession.setMakeupClassroom(createDto.getMakeupClassroom());
+
+            String makeupRoom = createDto.getMakeupClassroom();
+            if (!StringUtils.hasText(makeupRoom)) {
+                makeupRoom = schedule.getClassroom(); // Lấy phòng học mặc định từ buổi học gốc
+            }
+            makeupSession.setMakeupClassroom(makeupRoom);
+
             makeupSessionRepository.save(makeupSession);
         }
 
@@ -145,7 +157,7 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
         AbsenceRequest request = findRequestById(requestId);
 
         Department requestDepartment = request.getLecturer().getDepartment();
-        if (!managerLecturerInfo.getDepartment().equals(requestDepartment)) {
+        if (!Objects.equals(managerLecturerInfo.getDepartment().getDepartmentId(), requestDepartment.getDepartmentId())) {
             throw new AccessDeniedException("Manager can only approve requests from their own department.");
         }
 
@@ -168,6 +180,16 @@ public class AbsenceRequestServiceImpl implements AbsenceRequestService {
 
     private AbsenceRequestDTO updateAndNotify(AbsenceRequest request) {
         AbsenceRequest updatedRequest = absenceRequestRepository.save(request);
+
+        // Check if the request is fully approved and update the original schedule's status
+        if (request.getManagerApproval() == ApprovalStatus.APPROVED && request.getAcademicAffairsApproval() == ApprovalStatus.APPROVED) {
+            Schedule originalSchedule = request.getSchedule();
+            if (originalSchedule != null) {
+                originalSchedule.setStatus(ScheduleStatus.ABSENT_APPROVED);
+                scheduleRepository.save(originalSchedule);
+            }
+        }
+
         AbsenceRequestDTO updatedDto = mapToDtoWithDetails(updatedRequest);
 
         // To notify the user, we need to get the user from the lecturer
