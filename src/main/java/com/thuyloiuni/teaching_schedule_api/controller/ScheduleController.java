@@ -37,30 +37,30 @@ public class ScheduleController {
     }
 
     @GetMapping("/lecturer/{email}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER', 'MANAGER')")
     @Operation(summary = "Lấy lịch học theo email giảng viên", description = "Truy xuất danh sách các buổi học của một giảng viên cụ thể bằng email.")
     public ResponseEntity<List<ScheduleDTO>> getSchedulesByLecturerEmail(@PathVariable String email) {
         return ResponseEntity.ok(scheduleService.getSchedulesByLecturerEmail(email));
     }
 
     @GetMapping("/by-assignment/{assignmentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER', 'MANAGER')")
     @Operation(summary = "Lấy lịch học theo phân công giảng dạy", description = "Truy xuất danh sách tất cả các buổi học thuộc về một phân công giảng dạy cụ thể.")
     public ResponseEntity<List<ScheduleDTO>> getSchedulesByAssignment(@PathVariable Integer assignmentId) {
         return ResponseEntity.ok(scheduleService.getSchedulesByAssignment(assignmentId));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Tạo lịch học mới", description = "Tạo một buổi học mới trong lịch trình. Chỉ ADMIN có quyền.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Tạo lịch học mới", description = "Tạo một buổi học mới trong lịch trình. Chỉ ADMIN hoặc MANAGER có quyền.")
     public ResponseEntity<ScheduleDTO> createSchedule(@Valid @RequestBody CreateScheduleDTO createDto) {
         ScheduleDTO createdSchedule = scheduleService.createSchedule(createDto);
         return new ResponseEntity<>(createdSchedule, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cập nhật lịch học", description = "Cập nhật thông tin một buổi học đã có. Chỉ ADMIN có quyền.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Cập nhật lịch học", description = "Cập nhật thông tin một buổi học đã có. Chỉ ADMIN hoặc MANAGER có quyền.")
     public ResponseEntity<ScheduleDTO> updateSchedule(@PathVariable Integer id, @Valid @RequestBody CreateScheduleDTO updateDto) {
         ScheduleDTO updatedSchedule = scheduleService.updateSchedule(id, updateDto);
         return ResponseEntity.ok(updatedSchedule);

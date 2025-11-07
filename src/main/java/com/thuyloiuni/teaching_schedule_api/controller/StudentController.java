@@ -40,6 +40,13 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getStudentsByClassId(classId));
     }
 
+    @GetMapping("/by-schedule/{scheduleId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'LECTURER')")
+    @Operation(summary = "Lấy sinh viên theo buổi học", description = "Truy xuất danh sách tất cả sinh viên có trong một buổi học cụ thể.")
+    public ResponseEntity<List<StudentDTO>> getStudentsByScheduleId(@PathVariable Integer scheduleId) {
+        return ResponseEntity.ok(studentService.getStudentsByScheduleId(scheduleId));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tạo sinh viên mới", description = "Tạo một sinh viên mới trong hệ thống. Chỉ ADMIN có quyền.")

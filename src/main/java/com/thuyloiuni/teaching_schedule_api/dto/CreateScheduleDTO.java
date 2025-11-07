@@ -5,7 +5,7 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 public class CreateScheduleDTO {
@@ -14,7 +14,7 @@ public class CreateScheduleDTO {
 
     @NotNull(message = "Ngày học không được để trống")
     @FutureOrPresent(message = "Ngày học phải là ngày hiện tại hoặc trong tương lai")
-    private LocalDateTime sessionDate;
+    private ZonedDateTime sessionDate;
 
     @NotNull(message = "Thứ tự buổi học không được để trống")
     private Integer lessonOrder;
@@ -31,7 +31,5 @@ public class CreateScheduleDTO {
     private String content;
     private String notes;
 
-    // Khi tạo mới, có thể không cần gửi lên, service sẽ tự gán PENDING
-    // Khi cập nhật, có thể gửi lên trạng thái mới
     private ScheduleStatus status = ScheduleStatus.NOT_TAUGHT;
 }

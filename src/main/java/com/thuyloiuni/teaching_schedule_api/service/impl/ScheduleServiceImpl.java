@@ -73,6 +73,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule existingSchedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + id));
 
+        // Check if the assignment needs to be updated
         if (!existingSchedule.getAssignment().getAssignmentId().equals(updateDto.getAssignmentId())) {
             Assignment assignment = assignmentRepository.findById(updateDto.getAssignmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phân công với ID: " + updateDto.getAssignmentId()));
@@ -84,6 +85,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule updatedSchedule = scheduleRepository.save(existingSchedule);
         ScheduleDTO updatedDto = scheduleMapper.toDto(updatedSchedule);
 
+        // Send real-time notification to the lecturer
         if (updatedSchedule.getAssignment() != null && updatedSchedule.getAssignment().getLecturer() != null && updatedSchedule.getAssignment().getLecturer().getUser() != null) {
             Long userId = updatedSchedule.getAssignment().getLecturer().getUser().getUserId();
             String destination = "/topic/user/" + userId;
@@ -102,8 +104,18 @@ public class ScheduleServiceImpl implements ScheduleService {
         scheduleRepository.deleteById(id);
     }
 
+    /**
+     * Helper method to map data from a DTO to a Schedule entity.
+     * This is used for both creating and updating schedules.
+     */
     private void updateScheduleFromDto(Schedule schedule, CreateScheduleDTO dto) {
-        schedule.setSessionDate(dto.getSessionDate());
-        // You might need to handle lessonOrder, startPeriod, endPeriod, classroom, content, notes, status here
+        schedule.setSessionDate(dto.getSessionDate().toLocalDateTime()); // Convert ZonedDateTime to LocalDateTime
+        schedule.setLessonOrder(dto.getLessonOrder());
+        schedule.setStartPeriod(dto.getStartPeriod());
+        schedule.setEndPeriod(dto.getEndPeriod());
+        schedule.setClassroom(dto.getClassroom());
+        schedule.setContent(dto.getContent());
+        schedule.setNotes(dto.getNotes());
+        schedule.setStatus(dto.getStatus());
     }
 }
